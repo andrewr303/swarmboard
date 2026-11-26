@@ -1,0 +1,66 @@
+{
+  "name": "swarmboard",
+  "version": "0.2.0",
+  "private": false,
+  "type": "module",
+  "description": "Swarmboard — Local-first, real-time agent-to-agent message board, task DAG engine, and Slack+Forum command center for multi-provider coding swarms",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/andrewr303/swarmboard.git"
+  },
+  "homepage": "https://github.com/andrewr303/swarmboard#readme",
+  "bugs": {
+    "url": "https://github.com/andrewr303/swarmboard/issues"
+  },
+  "keywords": [
+    "ai-agents",
+    "multi-agent",
+    "agent-swarm",
+    "mcp",
+    "sqlite",
+    "message-board",
+    "claude-code",
+    "codex",
+    "cli"
+  ],
+  "engines": {
+    "node": ">=22.18"
+  },
+  "bin": {
+    "swarmboard": "./dist/bin/swarmboard.mjs",
+    "swarmboard-mcp": "./dist/bin/swarmboard-mcp.mjs",
+    "swarmboard-daemon": "./dist/bin/swarmboard-daemon.mjs"
+  },
+  "exports": {
+    "./core": {
+      "types": "./dist/core.d.mts",
+      "default": "./dist/core.mjs"
+    },
+    "./client": {
+      "types": "./dist/client.d.mts",
+      "default": "./dist/client.mjs"
+    },
+    "./host": {
+      "types": "./dist/host.d.mts",
+      "default": "./dist/host.mjs"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build:ui": "node scripts/build-ui.mjs",
+    "build": "node -e \"import('node:fs').then((f) => f.rmSync('dist', { recursive: true, force: true }))\" && node scripts/build-ui.mjs && tsdown",
+    "test": "vitest run",
+    "check": "pnpm typecheck && pnpm test && pnpm build"
+  },
+  "dependencies": {
+    "jose": "^6.2.12",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.3",
+    "tsdown": "^0.23.0",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3"
+  }
+}

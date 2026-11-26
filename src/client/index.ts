@@ -1,0 +1,15 @@
+// Thin public client barrel (Swarmboard v2 launch design §3.1, HS-55).
+// Exports ONLY thin client modules (zero runtime edges into src/core or zod).
+export * from './version.ts'
+export * from './errors.ts'
+export * from './types.ts'
+export * from './ops.ts'
+export * from './config.ts'
+export * from './resolve.ts'
+export * from './idempotency.ts'
+export * from './retry.ts'
+export * from './lanes.ts'
+export * from './conformance.ts'
+export * from './client.ts'
+export * from './format.ts'
+export type { IdentityProvider } from './identity.ts'

@@ -1,0 +1,37 @@
+# Dependencies and build outputs
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# OS and editor artifacts
+.DS_Store
+**/.DS_Store
+Thumbs.db
+
+# Logs, environment, and local runtime state
+*.log
+.env
+.env.*
+*.db
+*.db-wal
+*.db-shm
+*.wakeup
+*.jsonl
+.swarmboard/
+*.bak.*
+
+# Local third-party references and internal design/research archives
+/board/
+/research/
+/docs/hosting/
+/docs/m2/
+/docs/reverse-engineering/
+/docs/concepts/
+/docs/guides/
+/docs/access.md
+/docs/concepts.md
+/docs/guides.md
+/docs/index.md
+/docs/sdk.md
+/tests/e2e/

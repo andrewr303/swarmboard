@@ -1,0 +1,901 @@
+[
+ {
+  "name": "flag db beats env, project and user",
+  "flags": {
+   "db": "/b/x.db"
+  },
+  "env": {
+   "SWARMBOARD_DB": "/e/y.db"
+  },
+  "cwd": "/r/a/b",
+  "files": {
+   "/r/.git": {
+    "kind": "dir"
+   },
+   "/r/.swarmboard/config.json": "{\"db\":\"p.db\"}",
+   "/home/u/.config/swarmboard/config.json": "{\"boards\":{\"l\":{\"db\":\"/u.db\"}},\"default\":\"l\"}"
+  },
+  "expect": {
+   "kind": "file",
+   "db": "/b/x.db",
+   "source": "flag:db"
+  }
+ },
+ {
+  "name": "flag board file url",
+  "flags": {
+   "board": "file:///a/b.db"
+  },
+  "expect": {
+   "kind": "file",
+   "db": "/a/b.db",
+   "source": "flag:board"
+  }
+ },
+ {
+  "name": "flag board relative path",
+  "flags": {
+   "board": "./b.db"
+  },
+  "expect": {
+   "error": "invalid_db_path"
+  }
+ },
+ {
+  "name": "flag board user entry url",
+  "flags": {
+   "board": "corp"
+  },
+  "files": {
+   "/home/u/.config/swarmboard/config.json": "{\"boards\":{\"corp\":{\"url\":\"https://h/api/board\",\"auth\":\"bearer\"}}}"
+  },
+  "expect": {
+   "kind": "url",
+   "url": "https://h/api/board",
+   "auth": "bearer",
+   "source": "user:/home/u/.config/swarmboard/config.json"
+  }
+ },
+ {
+  "name": "flag board user entry db",
+  "flags": {
+   "board": "corp"
+  },
+  "files": {
+   "/home/u/.config/swarmboard/config.json": "{\"boards\":{\"corp\":{\"db\":\"/c/b.db\",\"mode\":\"file\"}}}"
+  },
+  "expect": {
+   "kind": "file",
+   "db": "/c/b.db",
+   "source": "user:/home/u/.config/swarmboard/config.json",
+   "mode": "file",
+   "modeSource": "user:/home/u/.config/swarmboard/config.json"
+  }
+ },
+ {
+  "name": "flag board unknown name",
+  "flags": {
+   "board": "nope"
+  },
+  "expect": {
+   "error": "no_board"
+  }
+ },
+ {
+  "name": "flags url and db",
+  "flags": {
+   "url": "https://h/x",
+   "db": "/a.db"
+  },
+  "expect": {
+   "error": "conflicting_options"
+  }
+ },
+ {
+  "name": "flags board and url",
+  "flags": {
+   "url": "https://h/x",
+   "board": "x"
+  },
+  "expect": {
+   "error": "conflicting_options"
+  }
+ },
+ {
+  "name": "flag url https",
+  "flags": {
+   "url": "https://h/api/board"
+  },
+  "expect": {
+   "kind": "url",
+   "url": "https://h/api/board",
+   "auth": null,
+   "source": "flag:url"
+  }
+ },
+ {
+  "name": "flag url loopback ip",
+  "flags": {
+   "url": "http://127.0.0.1:4180/api/board"
+  },
+  "expect": {
+   "kind": "url",
+   "url": "http://127.0.0.1:4180/api/board",
+   "source": "flag:url"
+  }
+ },
+ {
+  "name": "flag url localhost",
+  "flags": {
+   "url": "http://localhost:4180"
+  },
+  "expect": {
+   "kind": "url",
+   "url": "http://localhost:4180",
+   "source": "flag:url"
+  }
+ },
+ {
+  "name": "flag url ipv6 loopback",
+  "flags": {
+   "url": "http://[::1]:4180/b"
+  },
+  "expect": {
+   "kind": "url",
+   "url": "http://[::1]:4180/b",
+   "source": "flag:url"
+  }
+ },
+ {
+  "name": "flag url plain http remote",
+  "flags": {
+   "url": "http://example.com"
+  },
+  "expect": {
+   "error": "invalid_url"
+  }
+ },
+ {
+  "name": "flag url userinfo",
+  "flags": {
+   "url": "https://u:p@h/x"
+  },
+  "expect": {
+   "error": "invalid_url"
+  }
+ },
+ {
+  "name": "flag url ftp",
+  "flags": {
+   "url": "ftp://h/x"
+  },
+  "expect": {
+   "error": "invalid_url"
+  }
+ },
+ {
+  "name": "flag url query dropped",
+  "flags": {
+   "url": "https://h/x?token=abc#f"
+  },
+  "expect": {
+   "kind": "url",
+   "url": "https://h/x",
+   "source": "flag:url"
+  }
+ },
+ {
+  "name": "flag board https url",
+  "flags": {
+   "board": "https://h/x"
+  },
+  "expect": {
+   "kind": "url",
+   "url": "https://h/x",
+   "source": "flag:board"
+  }
+ },
+ {
+  "name": "flag db memory in process",
+  "flags": {
+   "db": ":memory:",
+   "inProcess": true
+  },
+  "expect": {
+   "kind": "memory",
+   "db": ":memory:",
+   "source": "flag:db"
+  }
+ },
+ {
+  "name": "flag db memory without in process",
+  "flags": {
+   "db": ":memory:"
+  },
+  "expect": {
+   "error": "invalid_db_path"
+  }
+ },
+ {
+  "name": "flag db relative",
+  "flags": {
+   "db": "x.db"
+  },
+  "expect": {
+   "error": "invalid_db_path"
+  }
+ },
+ {
+  "name": "env db relative",
+  "env": {
+   "SWARMBOARD_DB": "rel/b.db"
+  },
+  "expect": {
+   "error": "invalid_db_path"
+  }
+ },
+ {
+  "name": "env db blank is unset",
+  "env": {
+   "SWARMBOARD_DB": "  "
+  },
+  "expect": {
+   "kind": "file",
+   "db": "/home/u/.local/state/swarmboard/default/board.db",
+   "source": "default:state"
+  }
+ },
+ {
+  "name": "env dir",
+  "env": {
+   "SWARMBOARD_DIR": "/x"
+  },
+  "expect": {
+   "kind": "file",
+   "db": "/x/board.db",
+   "source": "env:SWARMBOARD_DIR"
+  }
+ },
+ {
+  "name": "env dir and matching db",
+  "env": {
+   "SWARMBOARD_DIR": "/x/",
+   "SWARMBOARD_DB": "/x/board.db"
+  },
+  "expect": {
+   "kind": "file",
+   "db": "/x/board.db",
+   "source": "env:SWARMBOARD_DB"
+  }
+ },
+ {
+  "name": "env dir and different db",
+  "env": {
+   "SWARMBOARD_DIR": "/y",
+   "SWARMBOARD_DB": "/x/board.db"
+  },
+  "expect": {
+   "error": "conflicting_options"
+  }
+ },
+ {
+  "name": "env url and db",
+  "env": {
+   "SWARMBOARD_URL": "https://h/api/board",
+   "SWARMBOARD_DB": "/x.db"
+  },
+  "expect": {
+   "error": "conflicting_options"
+  }
+ },
+ {
+  "name": "env url alone",
+  "env": {
+   "SWARMBOARD_URL": "https://h/api/board"
+  },
+  "expect": {
+   "kind": "url",
+   "url": "https://h/api/board",
+   "source": "env:SWARMBOARD_URL"
+  }
+ },
+ {
+  "name": "compat url ignored by canonical db",
+  "env": {
+   "BOARD_URL": "https://v/api/board",
+   "SWARMBOARD_DB": "/x.db"
+  },
+  "expect": {
+   "kind": "file",
+   "db": "/x.db",
+   "source": "env:SWARMBOARD_DB"
+  }
+ },
+ {
+  "name": "compat url alone",
+  "env": {
+   "BOARD_URL": "https://v/api/board"
+  },
+  "expect": {
+   "kind": "url",
+   "url": "https://v/api/board",
+   "source": "env:BOARD_URL"
+  }
+ },
+ {
+  "name": "compat url and name",
+  "env": {
+   "BOARD_URL": "https://v/api/board",
+   "BOARD_NAME": "team"
+  },
+  "expect": {
+   "error": "conflicting_options"
+  }
+ },
+ {
+  "name": "compat name with canonical db",
+  "env": {
+   "BOARD_NAME": "team",
+   "SWARMBOARD_DB": "/x.db"
+  },
+  "expect": {
+   "kind": "file",
+   "db": "/x.db",
+   "source": "env:SWARMBOARD_DB"
+  }
+ },
+ {
+  "name": "compat name alone",
+  "env": {
+   "BOARD_NAME": "team"
+  },
+  "expect": {
+   "kind": "file",
+   "db": "/home/u/.local/state/swarmboard/default/board.db",
+   "source": "default:state"
+  }
+ },
+ {
+  "name": "git default",
+  "cwd": "/r/a/b",
+  "files": {
+   "/r/.git": {
+    "kind": "dir"
+   }
+  },
+  "expect": {
+   "kind": "file",
+   "db": "/r/.swarmboard/board.db",
+   "source": "default:git",
+   "defaultDir": true
+  }
+ },
+ {
+  "name": "git file is a root too",
+  "cwd": "/r/a/b",
+  "files": {
+   "/r/.git": {
+    "kind": "file",
+    "text": "gitdir: /x"
+   }
+  },
+  "expect": {
+   "kind": "file",
+   "db": "/r/.swarmboard/board.db",
+   "source": "default:git"
+  }
+ },
+ {
+  "name": "project config db, nearest wins",
+  "cwd": "/r/a/b",
+  "files": {
+   "/r/.git": {
+    "kind": "dir"
+   },
+   "/r/a/.swarmboard/config.json": "{\"db\":\"b.db\"}",
+   "/.swarmboard/config.json": "{\"db\":\"z.db\"}"
+  },
+  "expect": {
+   "kind": "file",
+   "db": "/r/a/b.db",
+   "source": "project:/r/a/.swarmboard/config.json"
+  }
+ },
+ {
+  "name": "project config outside a repo is not read",
+  "cwd": "/work/x",
+  "files": {
+   "/work/.swarmboard/config.json": "{\"db\":\"b.db\"}"
+  },
+  "expect": {
+   "kind": "file",
+   "db": "/home/u/.local/state/swarmboard/default/board.db",
+   "source": "default:state"
+  }
+ },
+ {
+  "name": "project config forbids url",
+  "cwd": "/r",
+  "files": {
+   "/r/.git": {
+    "kind": "dir"
+   },
+   "/r/.swarmboard/config.json": "{\"url\":\"https://h/x\"}"
+  },
+  "expect": {
+   "error": "config_forbidden"
+  }
+ },
+ {
+  "name": "project db outside the repo",
+  "cwd": "/r",
+  "files": {
+   "/r/.git": {
+    "kind": "dir"
+   },
+   "/r/.swarmboard/config.json": "{\"db\":\"../x.db\"}"
+  },
+  "expect": {
+   "error": "unsafe_config"
+  }
+ },
+ {
+  "name": "env beats project db",
+  "cwd": "/r",
+  "env": {
+   "SWARMBOARD_DB": "/e.db"
+  },
+  "files": {
+   "/r/.git": {
+    "kind": "dir"
+   },
+   "/r/.swarmboard/config.json": "{\"db\":\"b.db\"}"
+  },
+  "expect": {
+   "kind": "file",
+   "db": "/e.db",
+   "source": "env:SWARMBOARD_DB"
+  }
+ },
+ {
+  "name": "project beats user default",
+  "cwd": "/r",
+  "files": {
+   "/r/.git": {
+    "kind": "dir"
+   },
+   "/r/.swarmboard/config.json": "{\"db\":\"b.db\"}",
+   "/home/u/.config/swarmboard/config.json": "{\"boards\":{\"l\":{\"db\":\"/u.db\"}},\"default\":\"l\"}"
+  },
+  "expect": {
+   "kind": "file",
+   "db": "/r/b.db",
+   "source": "project:/r/.swarmboard/config.json"
+  }
+ },
+ {
+  "name": "xdg state home",
+  "env": {
+   "XDG_STATE_HOME": "/s"
+  },
+  "expect": {
+   "kind": "file",
+   "db": "/s/swarmboard/default/board.db",
+   "source": "default:state"
+  }
+ },
+ {
+  "name": "windows local app data",
+  "platform": "win32",
+  "uid": null,
+  "cwd": "C:\\w",
+  "home": "C:\\Users\\u",
+  "env": {
+   "LOCALAPPDATA": "C:\\L"
+  },
+  "expect": {
+   "kind": "file",
+   "db": "C:\\L\\swarmboard\\default\\board.db",
+   "source": "default:state"
+  }
+ },
+ {
+  "name": "windows without local app data",
+  "platform": "win32",
+  "uid": null,
+  "cwd": "C:\\w",
+  "home": "C:\\Users\\u",
+  "expect": {
+   "kind": "file",
+   "db": "C:\\Users\\u\\AppData\\Local\\swarmboard\\default\\board.db",
+   "source": "default:state"
+  }
+ },
+ {
+  "name": "user default db with tilde",
+  "files": {
+   "/home/u/.config/swarmboard/config.json": "{\"boards\":{\"local\":{\"db\":\"~/b/board.db\"}},\"default\":\"local\"}"
+  },
+  "expect": {
+   "kind": "file",
+   "db": "/home/u/b/board.db",
+   "source": "user:/home/u/.config/swarmboard/config.json"
+  }
+ },
+ {
+  "name": "user default url entry",
+  "files": {
+   "/home/u/.config/swarmboard/config.json": "{\"boards\":{\"corp\":{\"url\":\"https://h/api/board\",\"auth\":\"oidc\"}},\"default\":\"corp\"}"
+  },
+  "expect": {
+   "kind": "url",
+   "url": "https://h/api/board",
+   "auth": "oidc",
+   "source": "user:/home/u/.config/swarmboard/config.json"
+  }
+ },
+ {
+  "name": "user default missing entry",
+  "files": {
+   "/home/u/.config/swarmboard/config.json": "{\"boards\":{},\"default\":\"gone\"}"
+  },
+  "expect": {
+   "error": "invalid_config"
+  }
+ },
+ {
+  "name": "user urls without default stay remote-free",
+  "files": {
+   "/home/u/.config/swarmboard/config.json": "{\"boards\":{\"corp\":{\"url\":\"https://h/api/board\"}}}"
+  },
+  "expect": {
+   "kind": "file",
+   "db": "/home/u/.local/state/swarmboard/default/board.db",
+   "source": "default:state"
+  }
+ },
+ {
+  "name": "user config under xdg config home",
+  "env": {
+   "XDG_CONFIG_HOME": "/xc"
+  },
+  "files": {
+   "/xc/swarmboard/config.json": "{\"boards\":{\"l\":{\"db\":\"/u.db\"}},\"default\":\"l\"}"
+  },
+  "expect": {
+   "kind": "file",
+   "db": "/u.db",
+   "source": "user:/xc/swarmboard/config.json"
+  }
+ },
+ {
+  "name": "mode flag",
+  "flags": {
+   "mode": "file"
+  },
+  "env": {
+   "SWARMBOARD_MODE": "daemon"
+  },
+  "expect": {
+   "kind": "file",
+   "db": "/home/u/.local/state/swarmboard/default/board.db",
+   "source": "default:state",
+   "mode": "file",
+   "modeSource": "flag:mode"
+  }
+ },
+ {
+  "name": "mode env",
+  "env": {
+   "SWARMBOARD_MODE": "file"
+  },
+  "expect": {
+   "kind": "file",
+   "db": "/home/u/.local/state/swarmboard/default/board.db",
+   "source": "default:state",
+   "mode": "file",
+   "modeSource": "env:SWARMBOARD_MODE"
+  }
+ },
+ {
+  "name": "mode compat daemon required",
+  "env": {
+   "SWARMBOARD_DAEMON": "required"
+  },
+  "expect": {
+   "kind": "file",
+   "db": "/home/u/.local/state/swarmboard/default/board.db",
+   "source": "default:state",
+   "mode": "daemon",
+   "modeSource": "env:SWARMBOARD_DAEMON"
+  }
+ },
+ {
+  "name": "mode compat daemon off",
+  "env": {
+   "SWARMBOARD_DAEMON": "off"
+  },
+  "expect": {
+   "kind": "file",
+   "db": "/home/u/.local/state/swarmboard/default/board.db",
+   "source": "default:state",
+   "mode": "file",
+   "modeSource": "env:SWARMBOARD_DAEMON"
+  }
+ },
+ {
+  "name": "mode project",
+  "cwd": "/r",
+  "files": {
+   "/r/.git": {
+    "kind": "dir"
+   },
+   "/r/.swarmboard/config.json": "{\"mode\":\"service\"}"
+  },
+  "expect": {
+   "kind": "file",
+   "db": "/r/.swarmboard/board.db",
+   "source": "default:git",
+   "mode": "service",
+   "modeSource": "project:/r/.swarmboard/config.json"
+  }
+ },
+ {
+  "name": "mode default",
+  "expect": {
+   "kind": "file",
+   "db": "/home/u/.local/state/swarmboard/default/board.db",
+   "source": "default:state",
+   "mode": "auto",
+   "modeSource": "default"
+  }
+ },
+ {
+  "name": "mode and daemon disagree",
+  "env": {
+   "SWARMBOARD_MODE": "file",
+   "SWARMBOARD_DAEMON": "required"
+  },
+  "expect": {
+   "error": "conflicting_options"
+  }
+ },
+ {
+  "name": "mode and daemon agree",
+  "env": {
+   "SWARMBOARD_MODE": "file",
+   "SWARMBOARD_DAEMON": "off"
+  },
+  "expect": {
+   "kind": "file",
+   "db": "/home/u/.local/state/swarmboard/default/board.db",
+   "source": "default:state",
+   "mode": "file"
+  }
+ },
+ {
+  "name": "mode invalid env",
+  "env": {
+   "SWARMBOARD_MODE": "fast"
+  },
+  "expect": {
+   "error": "invalid_mode"
+  }
+ },
+ {
+  "name": "mode invalid flag",
+  "flags": {
+   "mode": "fast"
+  },
+  "expect": {
+   "error": "invalid_mode"
+  }
+ },
+ {
+  "name": "mode invalid daemon value",
+  "env": {
+   "SWARMBOARD_DAEMON": "maybe"
+  },
+  "expect": {
+   "error": "invalid_mode"
+  }
+ },
+ {
+  "name": "url with explicit file mode",
+  "flags": {
+   "url": "https://h/x",
+   "mode": "file"
+  },
+  "expect": {
+   "error": "conflicting_options"
+  }
+ },
+ {
+  "name": "url with env daemon mode",
+  "flags": {
+   "url": "https://h/x"
+  },
+  "env": {
+   "SWARMBOARD_MODE": "daemon"
+  },
+  "expect": {
+   "error": "conflicting_options"
+  }
+ },
+ {
+  "name": "url with auto mode",
+  "flags": {
+   "url": "https://h/x",
+   "mode": "auto"
+  },
+  "expect": {
+   "kind": "url",
+   "url": "https://h/x",
+   "mode": "auto"
+  }
+ },
+ {
+  "name": "url with in process",
+  "flags": {
+   "url": "https://h/x",
+   "inProcess": true
+  },
+  "expect": {
+   "error": "conflicting_options"
+  }
+ },
+ {
+  "name": "profile flag beats env",
+  "flags": {
+   "as": "a1"
+  },
+  "env": {
+   "SWARMBOARD_AGENT": "a2"
+  },
+  "expect": {
+   "kind": "file",
+   "db": "/home/u/.local/state/swarmboard/default/board.db",
+   "source": "default:state",
+   "profile": "a1",
+   "profileSource": "flag:as"
+  }
+ },
+ {
+  "name": "profile null flag",
+  "flags": {
+   "as": null
+  },
+  "env": {
+   "SWARMBOARD_AGENT": "a2"
+  },
+  "expect": {
+   "kind": "file",
+   "db": "/home/u/.local/state/swarmboard/default/board.db",
+   "source": "default:state",
+   "profile": null,
+   "profileSource": "flag:as"
+  }
+ },
+ {
+  "name": "profile canonical env",
+  "env": {
+   "SWARMBOARD_AGENT": "a2",
+   "BOARD_PROFILE": "zz"
+  },
+  "expect": {
+   "kind": "file",
+   "db": "/home/u/.local/state/swarmboard/default/board.db",
+   "source": "default:state",
+   "profile": "a2",
+   "profileSource": "env:SWARMBOARD_AGENT"
+  }
+ },
+ {
+  "name": "profile compat board profile",
+  "env": {
+   "BOARD_PROFILE": "b1",
+   "FUSION_AGENT_ID": "zz"
+  },
+  "expect": {
+   "kind": "file",
+   "db": "/home/u/.local/state/swarmboard/default/board.db",
+   "source": "default:state",
+   "profile": "b1",
+   "profileSource": "env:BOARD_PROFILE"
+  }
+ },
+ {
+  "name": "profile compat fusion",
+  "env": {
+   "FUSION_AGENT_ID": "f-1"
+  },
+  "expect": {
+   "kind": "file",
+   "db": "/home/u/.local/state/swarmboard/default/board.db",
+   "source": "default:state",
+   "profile": "f-1",
+   "profileSource": "env:FUSION_AGENT_ID"
+  }
+ },
+ {
+  "name": "profile underscore",
+  "env": {
+   "FUSION_AGENT_ID": "worker_1"
+  },
+  "expect": {
+   "error": "invalid_profile"
+  }
+ },
+ {
+  "name": "profile too long",
+  "flags": {
+   "as": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "expect": {
+   "error": "invalid_profile"
+  }
+ },
+ {
+  "name": "profile starts with digit",
+  "env": {
+   "SWARMBOARD_AGENT": "1a"
+  },
+  "expect": {
+   "error": "invalid_profile"
+  }
+ },
+ {
+  "name": "no profile",
+  "expect": {
+   "kind": "file",
+   "db": "/home/u/.local/state/swarmboard/default/board.db",
+   "source": "default:state",
+   "profile": null,
+   "profileSource": null
+  }
+ },
+ {
+  "name": "parent with newline",
+  "env": {
+   "SWARMBOARD_PARENT": "a\nb"
+  },
+  "expect": {
+   "error": "invalid_request"
+  }
+ },
+ {
+  "name": "unsafe fs value",
+  "env": {
+   "SWARMBOARD_UNSAFE_FS": "yes"
+  },
+  "expect": {
+   "error": "invalid_request"
+  }
+ },
+ {
+  "name": "unsafe fs allow",
+  "env": {
+   "SWARMBOARD_UNSAFE_FS": "allow"
+  },
+  "expect": {
+   "kind": "file",
+   "db": "/home/u/.local/state/swarmboard/default/board.db",
+   "source": "default:state",
+   "allowUnsafeFs": true
+  }
+ },
+ {
+  "name": "in process ignores the mode",
+  "flags": {
+   "inProcess": true,
+   "db": "/m.db",
+   "mode": "daemon"
+  },
+  "expect": {
+   "kind": "file",
+   "db": "/m.db",
+   "source": "flag:db",
+   "inProcess": true
+  }
+ }
+]
