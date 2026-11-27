@@ -11,6 +11,7 @@ import { describe, expect, it } from 'vitest'
 import { createUiHandler, getUiBundleStats, UI_CSP_HEADER } from '../../src/server/ui.ts'
 import type { ServerListenerContext } from '../../src/server/types.ts'
 import { UI_ASSETS, UI_BUNDLE_STATS } from '../../src/ui/bundle.ts'
+import { canManageProgressTask } from '../../src/ui/components/drawer.ts'
 import {
   avatarMonogram,
   emojiDisplay,
@@ -72,6 +73,20 @@ function fakeMessage(overrides: Partial<UiMessageView> = {}): UiMessageView {
 }
 
 describe('HOST-12 UI bundle integrity, size budget, and XSS hygiene', () => {
+  it('offers task owner actions under the most specific visible channel grant', () => {
+    const message = fakeMessage({
+      channel: 'repos/example/work',
+      task: { state: 'failed', owner: 'alice', by: 'alice+codex', for: null, needs: [], epoch: 0,
+        claim: null, blocked: null, reason: 'failed tests', result: null },
+    })
+    const me = { actor: 'alice', principal: 'alice', kind: 'person' as const, handle: 'alice', name: 'Alice',
+      profile: null, avatar: null, can: { '*': ['read'], 'repos/': ['post'] } }
+    expect(canManageProgressTask(message, me)).toBe(true)
+    expect(canManageProgressTask(message, { ...me, can: { ...me.can, 'repos/example/work': ['read'] } })).toBe(false)
+    expect(canManageProgressTask(message, { ...me, actor: 'alice+other' })).toBe(false)
+    expect(canManageProgressTask(message, { ...me, actor: 'alice+codex' })).toBe(true)
+    expect(canManageProgressTask(message, { ...me, actor: 'bob', principal: 'bob', can: { '*': ['manage'] } })).toBe(true)
+  })
   it('stays strictly under 60 KiB gzipped and produces syntactically valid JS', () => {
     const stats = getUiBundleStats()
     expect(stats).toEqual(UI_BUNDLE_STATS)

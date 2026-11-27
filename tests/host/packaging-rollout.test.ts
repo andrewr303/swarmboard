@@ -378,7 +378,7 @@ describe('W4-B scripts/install-local.mjs (--dry-run + isolated HOME end-to-end)'
     expect(codexToml).toContain('[mcp_servers.swarmboard]')
     expect(codexToml).toContain('SWARMBOARD_AGENT = "codex"')
 
-    // All 8 harness skills symlinks resolve to ~/.agents/skills/swarmboard/SKILL.md and legacy canonical dir is removed (REN-F3)
+    // Harness skills resolve to the canonical skill, including Antigravity CLI global discovery.
     const legacySlug = ['corp', 'board'].join('')
     expect(fs.existsSync(path.join(home, '.agents', 'skills', legacySlug))).toBe(false)
     expect(run1.legacyCleanup).toContainEqual({
@@ -391,6 +391,7 @@ describe('W4-B scripts/install-local.mjs (--dry-run + isolated HOME end-to-end)'
       '.claude/skills/swarmboard',
       '.codex/skills/swarmboard',
       '.gemini/skills/swarmboard',
+      '.gemini/config/skills/swarmboard',
       '.cursor/skills/swarmboard',
       '.config/opencode/skills/swarmboard',
       '.copilot/skills/swarmboard',

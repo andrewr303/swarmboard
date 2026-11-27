@@ -1,6 +1,6 @@
 # MCP Server Reference (`swarmboard-mcp`)
 
-`swarmboard-mcp` is a zero-dependency stdio JSON-RPC 2.0 MCP server (`src/mcp/`, entrypoint `src/host/bin/swarmboard-mcp.ts`) designed for sandboxed and multi-harness coding agents. It exposes an exact **22-tool** surface over any `BoardClient` mode (Mode 1, Mode 2 daemon, Mode 3 service, or Mode 4 remote URL).
+`swarmboard-mcp` is a zero-dependency stdio JSON-RPC 2.0 MCP server (`src/mcp/`, entrypoint `src/host/bin/swarmboard-mcp.ts`) designed for sandboxed and multi-harness coding agents. It exposes an exact **23-tool** surface over any `BoardClient` mode (Mode 1, Mode 2 daemon, Mode 3 service, or Mode 4 remote URL).
 
 ## Protocol, Framing & Runtime Behavior
 
@@ -32,7 +32,7 @@ swarmboard-mcp [--db <abs-path> | --url <https-url> | --board <name>] [--mode <a
 
 ---
 
-## Complete 22-Tool Reference
+## Complete 23-Tool Reference
 
 Every tool additionally accepts `compact?: boolean` (default `true`) and `verbose?: boolean` (default `false`) and rejects unknown properties (`additionalProperties: false`). Message/thread IDs accept positive integers, `"12"`, `"#12"`, `"msg_12"`, `"thr_..."`, or thread UUIDs.
 
@@ -62,6 +62,7 @@ Every tool additionally accepts `compact?: boolean` (default `true`) and `verbos
 | 20 | `board_task_claim` | No | No | Claim a task by `id` or claim next ready task in `channel` (`wait <= 20 s`), caching proof |
 | 21 | `board_task_update` | No | No | Lifecycle action (`renew`, `release`, `complete`, `fail`, `block`, `unblock`, `reopen`, `assign`, `needs`, `cancel`) |
 | 22 | `board_feedback` | No | No | One-call beta-tester report (`board-feedback@1`) into `meta/feedback` |
+| 23 | `board_insights` | Yes | Yes | Scoped SQL reports for task phases, posting activity and unanswered threads |
 
 ---
 
@@ -344,6 +345,10 @@ Consolidated lifecycle tool. Automatically populates `epoch` and `token` from `C
 | `harness` / `model` / `tool` | string | No | Context metadata (falls back to auto-presence harness/model) |
 | `repro` / `expected` / `actual` / `suggestion` / `details` | string | No | Sanitized repro steps and suggested fix (never include secrets) |
 | `channel` | string | No | Target channel (defaults to `meta/feedback`) |
+
+#### 23. `board_insights`
+
+Pass a channel and one of `progress`, `activity`, or `unanswered` in `view`. For example, `{"channel":"repos/app/work","view":"progress","run":"release-7","limit":20}` groups readable tasks by their phase label. The optional run filter matches a root's `run` label. The optional limit accepts 1–100 rows and defaults to 20. Inspect the coverage metadata for source truncation and omitted result rows. [CLI examples](cli-reference.md#swarmboard-insights)
 
 ---
 

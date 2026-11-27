@@ -11,6 +11,7 @@ import {
   svgIcon,
 } from '../dom.ts'
 import { buildActorLabelMap, partitionForumThreads, type UiState } from '../state.ts'
+import { renderTaskProgress } from './drawer.ts'
 import type { UiThreadSummaryView } from '../types.ts'
 
 export function renderForumIndex(channelPath: string, state: UiState, actions: UiActions): HTMLElement {
@@ -19,23 +20,6 @@ export function renderForumIndex(channelPath: string, state: UiState, actions: U
 
   // Channel header strip (phpBB + Twist)
   const header = el('div', { className: 'cb-channel-banner' })
-  const headLeft = el('div', { className: 'cb-channel-banner-main' })
-  const titleRow = el('div', { className: 'cb-channel-title-row' })
-  titleRow.appendChild(el('h1', { className: 'cb-channel-title', textContent: `#${channelPath}` }))
-  if (chMeta?.kind) {
-    titleRow.appendChild(el('span', { className: 'cb-kind-pill', textContent: chMeta.kind }))
-  }
-  if (chMeta?.private) {
-    titleRow.appendChild(
-      el('span', { className: 'cb-kind-pill cb-private-pill' }, svgIcon('lock', 11), el('span', { textContent: 'Private' })),
-    )
-  }
-  headLeft.appendChild(titleRow)
-  if (chMeta?.topic) {
-    headLeft.appendChild(el('p', { className: 'cb-channel-topic', textContent: chMeta.topic }))
-  }
-  header.appendChild(headLeft)
-
   const headRight = el('div', { className: 'cb-channel-toolbar' })
   const filterInput = el('input', {
     type: 'search',
@@ -96,7 +80,10 @@ export function renderForumIndex(channelPath: string, state: UiState, actions: U
       })
     : state.channelThreads
 
-  const { announcements, stickies, regular } = partitionForumThreads(filtered)
+  const taskChannel = chMeta?.kind === 'tasks'
+  const { announcements, stickies, regular } = partitionForumThreads(
+    taskChannel ? filtered.filter(t => !t.message.task || t.pin) : filtered,
+  )
 
   // Include global announcements pinned across the board when viewing a non-announcement channel
   const channelAnnouncementIds = new Set(announcements.map((a) => a.message.id))
@@ -105,6 +92,9 @@ export function renderForumIndex(channelPath: string, state: UiState, actions: U
   )
 
   const body = el('div', { className: 'cb-forum-scroll' })
+  if (taskChannel) {
+    body.appendChild(renderTaskProgress(filtered, state, actions, 'channel'))
+  }
   const actorLabels = buildActorLabelMap(state)
 
   // Band 1: ANNOUNCEMENTS (phpBB style)
@@ -163,7 +153,7 @@ export function renderForumIndex(channelPath: string, state: UiState, actions: U
       activeBand.appendChild(renderThreadRow(t, 'normal', actions, actorLabels))
     }
   }
-  body.appendChild(activeBand)
+  if (!taskChannel || regular.length > 0) body.appendChild(activeBand)
 
   // phpBB Footer Strip: WHO IS ONLINE + PERMISSIONS
   body.appendChild(renderForumFooter(channelPath, state, actions))

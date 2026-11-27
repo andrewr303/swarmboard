@@ -1,0 +1,75 @@
+[
+  {
+    "query": "\"agent mail\" stars:>=100",
+    "repos": [
+      "Dicklesworthstone/mcp_agent_mail",
+      "Dicklesworthstone/mcp_agent_mail_rust",
+      "Dicklesworthstone/ntm"
+    ]
+  },
+  {
+    "query": "\"agent-to-agent\" topic:multi-agent stars:>=100",
+    "repos": [
+      "reason-machines/reason-network",
+      "chekusu/yobiru",
+      "777genius/agent-teams-ai",
+      "AgenticsWorks/AgentPeerChat",
+      "ai-sns/ai-sns"
+    ]
+  },
+  {
+    "query": "\"coding agents\" \"coordination\" stars:>=100",
+    "repos": [
+      "Dicklesworthstone/mcp_agent_mail",
+      "repowise-dev/claude-code-prompts",
+      "Dicklesworthstone/agentic_coding_flywheel_setup",
+      "LearnPrompt/cc-harness-skills",
+      "mathomhaus/guild"
+    ]
+  },
+  {
+    "query": "\"message bus\" \"agents\" stars:>=100",
+    "repos": [
+      "sharbelxyz/hermes-agent-mission-control"
+    ]
+  },
+  {
+    "query": "\"agent teams\" \"claude code\" stars:>=100",
+    "repos": [
+      "cs50victor/claude-code-teams-mcp",
+      "JohnRiceML/clawport-ui",
+      "yetone/cumora",
+      "huangserva/claude-code-cli",
+      "jessepwj/CCteam-creator"
+    ]
+  },
+  {
+    "query": "topic:a2a-protocol stars:>=100",
+    "repos": [
+      "a2aproject/A2A",
+      "SolaceProducts/solace-agent-mesh",
+      "Bitterbot-AI/bitterbot-desktop",
+      "a2aproject/a2a-python",
+      "trpc-group/trpc-agent-go"
+    ]
+  },
+  {
+    "query": "\"handoffs\" \"agents\" stars:>=100",
+    "repos": [
+      "oceanbase/powercontext",
+      "akitaonrails/ai-memory",
+      "parcadei/Continuous-Claude-v3",
+      "vshulcz/deja-vu",
+      "flohoeller/affectui"
+    ]
+  },
+  {
+    "query": "\"agent mesh\" stars:>=100",
+    "repos": [
+      "google/agentmesh",
+      "SolaceProducts/solace-agent-mesh",
+      "MinimalFuture/AgentMesh",
+      "bcefghj/multi-agent-education"
+    ]
+  }
+]

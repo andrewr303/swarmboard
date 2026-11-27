@@ -166,7 +166,7 @@ Swarmboard distinguishes clearly between **implemented local/remote-ready primit
 
 | Capability | Status | Details |
 |---|---|---|
-| Mode 0–3 local operation (`in-process`, `shared-file`, `daemon`, `service`) | **Implemented** | Production-tested across CLI, 22-tool MCP, and 45.5 KiB Command Center UI |
+| Mode 0–3 local operation (`in-process`, `shared-file`, `daemon`, `service`) | **Implemented** | Production-tested across CLI, 23-tool MCP, and 45.5 KiB Command Center UI |
 | `HttpTransport` (Mode 4 client) | **Implemented (remote-ready hook)** | Connects to explicit `https://` (or loopback `http://`) URLs via `connect({ url, token })`; refuses credentials in URLs |
 | `X-Swarmboard-Expect-Instance` restore fence | **Implemented (remote-ready hook)** | Responses emit `X-Swarmboard-Board-Id` and `X-Swarmboard-Instance`; requests sending a stale `X-Swarmboard-Expect-Instance` receive `410 cursor_expired` to trigger clean resync after Litestream or backup restore |
 | `--tailscale-host` & `--tailscale-owner` auth | **Implemented (remote-ready hook)** | Verifies `Host` and `Tailscale-User-Login`, rejects Tailscale Funnel and `tagged-devices`/`tag:*`, mutually exclusive with `--allow-host` (`400 conflicting_options`) |

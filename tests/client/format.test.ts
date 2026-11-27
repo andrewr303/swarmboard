@@ -342,12 +342,14 @@ describe('compactMessage and thread/task/page projections', () => {
       unreadChannels: [],
       unreadDms: [],
       onlinePeers: 2,
+      peers: [{ handle: 'alice/claude', status: 'active' }],
     }
     const cInbox = compactAgentInbox(inbox)
     expect('tasks' in cInbox).toBe(false)
     expect('unreadChannels' in cInbox).toBe(false)
     expect('unreadDms' in cInbox).toBe(false)
     expect(cInbox.notifications).toHaveLength(1)
+    expect(cInbox.peers).toEqual(inbox.peers)
 
     const pin: PinView = {
       id: '1',
@@ -545,9 +547,11 @@ describe('ultra-terse single-line text formatters', () => {
       unreadChannels: [{ channel: 'dev', kind: 'chat', unread: 2, lastIndex: 50 }],
       unreadDms: [{ channel: 'dm/agy--codex', peer: 'agy', unread: 1, lastExcerpt: 'Ping', lastIndex: 50 }],
       onlinePeers: 1,
+      peers: [{ handle: 'alice/agy', status: 'busy' }],
     })
     expect(digest).toContain('inbox @codex cursor=50 unread=1 urgent=0 online=1')
     expect(digest).toContain('unread.dms:')
+    expect(digest).toContain('peers: @alice/agy (busy)')
     expect(digest).toContain('unread.channels:')
   })
 })

@@ -513,6 +513,21 @@ describe('V2-06: Real-time waitNotifications (in-process + cross-connection exte
 })
 
 describe('V2-07: agentInbox composite digest (notifications, tasks, unread channels/DMs, presence, ACL)', () => {
+  it('delivers task discussion to a live claimant once and stops when the lease expires', () => {
+    let now = Date.UTC(2026, 0, 1)
+    const board = new BoardService(openStore(':memory:'), { now: () => now })
+    const task = board.tasks.createTask(agy, { channel: 'work', text: 'Publish the contract' }).task
+    board.tasks.claimTask(codex, task.id, { lease: 30 })
+    const question = board.postMessage(claude, { re: task.id, text: 'Which field names should I use?' }).message
+    const tagged = board.postMessage(claude, { re: question.id, text: '@codex I have the fixture.' }).message
+    board.postMessage(codex, { re: question.id, text: 'I will post the contract.' })
+    now += 30_000
+    board.postMessage(claude, { re: task.id, text: 'Anyone available?' })
+    expect(board.listNotifications(codex).notifications.map(n => [n.messageId, n.reason])).toEqual([
+      [tagged.id, 'mention'], [question.id, 'reply'],
+    ])
+  })
+
   it('returns compact 1-call digest with task latestReply and strict private ACL filtering', () => {
     const store = openStore(':memory:')
     const board = new BoardService(store)
@@ -552,6 +567,7 @@ describe('V2-07: agentInbox composite digest (notifications, tasks, unread chann
     // Tasks digest includes latestReply skipping deleted tombstone
     expect(inbox.tasks.assigned.map((t) => t.id)).toEqual([assigned.id])
     expect(inbox.tasks.assigned[0]!.latestReply?.id).toBe(liveReply.id)
+    expect(inbox.notifications.some(n => n.messageId === liveReply.id && n.reason === 'reply')).toBe(true)
     expect(inbox.tasks.assigned[0]!.latestReply?.excerpt).toContain('HT-99')
     expect(inbox.tasks.ready.map((t) => t.id)).toEqual([readyTask.id])
 
@@ -560,6 +576,7 @@ describe('V2-07: agentInbox composite digest (notifications, tasks, unread chann
     expect(inbox.unreadDms).toHaveLength(1)
     expect(inbox.unreadDms[0]).toMatchObject({ channel: 'dm/agy--codex', peer: 'agy', unread: 1 })
     expect(inbox.onlinePeers).toBe(1)
+    expect(inbox.peers).toEqual([{ handle: agy.actor.handle, status: 'active' }])
   })
 })
 

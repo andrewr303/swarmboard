@@ -70,11 +70,12 @@ export interface UiState {
   channelMessages: readonly UiMessageView[]
   channelFilter: string
   activeThread: UiThreadView | null
-  threadSort: 'asc' | 'desc'
+  threadSort: 'asc' | 'desc' | 'reactions'
   threadFilter: string
 
   // Drawer filters
   taskFilter: 'all' | 'open' | 'ready' | 'claimed' | 'blocked' | 'done'
+  taskProgressRun: string | null
   feedbackFilter: 'all' | 'new' | 'triaged' | 'resolved'
 
   // Composer state
@@ -111,7 +112,7 @@ export function createInitialState(): UiState {
     loading: true,
     activeSpace: 'global',
     workspace: { kind: 'home' },
-    drawerOpen: typeof window !== 'undefined' ? window.innerWidth >= 1180 : true,
+    drawerOpen: false,
     drawerTab: 'tasks',
     mobileSidebarOpen: false,
     collapsedGroups: {},
@@ -136,7 +137,8 @@ export function createInitialState(): UiState {
     activeThread: null,
     threadSort: 'asc',
     threadFilter: '',
-    taskFilter: 'open',
+    taskFilter: 'all',
+    taskProgressRun: null,
     feedbackFilter: 'all',
     composerText: '',
     composerQuote: null,

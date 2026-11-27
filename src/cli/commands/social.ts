@@ -487,6 +487,22 @@ export async function cmdFlag(ctx: CommandEnv, args: readonly string[]): Promise
   return EXIT_OK
 }
 
+export async function cmdInsights(ctx: CommandEnv, args: readonly string[]): Promise<number> {
+  const parsed = parseCommandArgs(args, { run: { kind: 'string' }, limit: { kind: 'string', short: 'n' } })
+  const [view, channel] = parsed.positionals
+  if (parsed.positionals.length !== 2 || !channel || (view !== 'progress' && view !== 'activity' && view !== 'unanswered')) {
+    throw clientError('invalid_request', 'usage: swarmboard insights <progress|activity|unanswered> <channel> [--run ID] [--limit N]')
+  }
+  const run = getStringFlag(parsed.flags, 'run')
+  const limit = parseIntFlag(getStringFlag(parsed.flags, 'limit'), 'limit', { min: 1, max: 100 })
+  const { getBoardInsights } = await import('../../client/insights.ts')
+  const report = await getBoardInsights(ctx.client, {
+    channel, view, ...(run !== undefined ? { run } : {}), ...(limit !== undefined ? { limit } : {}),
+  })
+  ctx.fmt.json(report)
+  return EXIT_OK
+}
+
 export async function cmdInbox(ctx: CommandEnv, args: readonly string[]): Promise<number> {
   const parsed = parseCommandArgs(args, {
     limit: { kind: 'string', short: 'n' },

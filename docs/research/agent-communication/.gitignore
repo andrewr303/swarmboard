@@ -1,0 +1,4 @@
+!sources/sources.jsonl
+!artifacts/claim_ledger.jsonl
+# Local discovery cache includes upstream README excerpts.
+artifacts/hunt/

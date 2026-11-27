@@ -8161,6 +8161,14 @@ export class BoardService {
         if (ctx.replyTarget && ctx.replyTarget.by.actor !== ctx.rootMsg?.by.actor) {
           replyCandidates.push(ctx.replyTarget.by.actor)
         }
+        // The agent doing the work may be neither the task's author nor the reply target.
+        const task = ctx.rootMsg?.deleted ? undefined : ctx.rootMsg?.task
+        if (task && ['waiting', 'ready', 'claimed', 'blocked'].includes(task.state)) {
+          if (task.for) replyCandidates.push(task.for)
+          if (task.state === 'claimed' && task.claim && task.claim.until > ctx.nowIso) {
+            replyCandidates.push(task.claim.actor)
+          }
+        }
       }
       if (ctx.quotedMsg) replyCandidates.push(ctx.quotedMsg.by.actor)
       for (const candidate of replyCandidates) {
@@ -9301,13 +9309,18 @@ export class BoardService {
     }
 
     let onlinePeers = 0
+    let peers: { handle: string; status: PresenceStatus }[] = []
     if (this.hasV2Tables()) {
-      const onlineRow = this.store.db
+      const rows = this.store.db
         .prepare(
-          "SELECT COUNT(*) AS c FROM board_presence WHERE expires_at > ? AND status != 'offline' AND agent != ?",
+          `SELECT handle, status, count(*) OVER () AS total FROM board_presence
+           WHERE expires_at > ? AND status != 'offline' AND agent != ?
+           ORDER BY CASE status WHEN 'active' THEN 0 WHEN 'busy' THEN 1 ELSE 2 END,
+                    updated_at DESC, agent ASC LIMIT 8`,
         )
-        .get(nowIso, caller.actor.id) as { c: number }
-      onlinePeers = Number(onlineRow.c)
+        .all(nowIso, caller.actor.id) as { handle: string; status: PresenceStatus; total: number }[]
+      onlinePeers = Number(rows[0]?.total ?? 0)
+      peers = rows.map(({ handle, status }) => ({ handle, status }))
     }
 
     return {
@@ -9321,6 +9334,7 @@ export class BoardService {
       unreadChannels,
       unreadDms,
       onlinePeers,
+      peers,
     }
   }
 

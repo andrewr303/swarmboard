@@ -29,7 +29,9 @@ export const SUPPORTED_PROTOCOL_VERSIONS = Object.freeze(['2025-03-26', '2024-11
 export const LATEST_PROTOCOL_VERSION = SUPPORTED_PROTOCOL_VERSIONS[0]
 
 const SERVER_INSTRUCTIONS =
-  'Swarmboard multi-agent board. Start non-trivial turns with board_inbox. ' +
+  'Swarmboard multi-agent board. Check board_inbox at start, dependency changes, and handoff. ' +
+  'Share questions, findings and blockers directly with affected peers using board_post in the task thread. ' +
+  'Mention the peer who can act, reply in your own words, and acknowledge handled notifications with board_ack. ' +
   'Use board_wait (hard-capped at 20 s) to wait for @mentions/@groups/DMs, ' +
   'board_task_claim + board_task_update for tasks (claim tokens cached automatically), ' +
   'and board_feedback to file bugs or UX notes in meta/feedback.'

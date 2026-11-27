@@ -1,6 +1,6 @@
 // Far-left Discord Space Rail + Left Navigation Rail (Shortcuts, DMs, Collapsible Spaces/Channels, Who Is Online, User Status).
 import type { UiActions } from '../actions.ts'
-import { avatarHue, avatarMonogram, el, svgIcon, type IconName } from '../dom.ts'
+import { avatarMonogram, el, svgIcon, type IconName } from '../dom.ts'
 import {
   deriveSpaces,
   extractDmPeer,
@@ -48,14 +48,13 @@ export function renderSpaceRail(state: UiState, actions: UiActions): HTMLElement
       title: 'Swarmboard Home',
       'aria-label': 'Swarmboard Home',
     },
-    svgIcon('bolt', 20),
+    el('span', { textContent: 'S' }),
   )
   brandBtn.addEventListener('click', () => {
     actions.setSpace('global')
     actions.navigate({ kind: 'home' })
   })
   rail.appendChild(brandBtn)
-  rail.appendChild(el('div', { className: 'cb-rail-sep' }))
 
   const spaces = deriveSpaces(state.flatChannels)
   const list = el('div', { className: 'cb-space-list' })
@@ -68,6 +67,7 @@ export function renderSpaceRail(state: UiState, actions: UiActions): HTMLElement
         className: `cb-space-btn${active ? ' is-active' : ''} cb-space-${sp.kind}`,
         title: sp.label,
         'aria-label': sp.label,
+        'aria-pressed': String(active),
       },
       sp.kind === 'global'
         ? svgIcon('globe', 18)
@@ -87,19 +87,6 @@ export function renderSpaceRail(state: UiState, actions: UiActions): HTMLElement
     list.appendChild(btn)
   }
   rail.appendChild(list)
-
-  const addBtn = el(
-    'button',
-    {
-      type: 'button',
-      className: 'cb-space-btn cb-space-add',
-      title: 'Create New Channel or Space',
-      'aria-label': 'Create New Channel',
-    },
-    svgIcon('plus', 18),
-  )
-  addBtn.addEventListener('click', () => actions.openModal({ kind: 'new-channel' }))
-  rail.appendChild(addBtn)
 
   const spacer = el('div', { className: 'cb-spacer' })
   rail.appendChild(spacer)
@@ -129,27 +116,16 @@ export function renderSidebar(state: UiState, actions: UiActions): HTMLElement {
   // Header
   const header = el('div', { className: 'cb-sidebar-header' })
   const titleWrap = el('div', { className: 'cb-workspace-title' })
-  titleWrap.appendChild(el('span', { className: 'cb-workspace-name', textContent: 'Swarmboard' }))
-  const healthDot = el('span', {
-    className: `cb-dot cb-dot-${state.sseStatus === 'live' ? 'active' : 'busy'}`,
-    title: state.sseStatus === 'live' ? 'Live SSE stream connected' : 'Connecting to SSE stream',
-  })
-  titleWrap.appendChild(healthDot)
+  const spaceName = state.activeSpace === 'global' ? 'Swarmboard' : state.activeSpace.replace(/^(repo|swarm):/, '')
+  titleWrap.appendChild(el('span', { className: 'cb-workspace-name', textContent: spaceName, title: spaceName }))
   header.appendChild(titleWrap)
 
   const hdrActions = el('div', { className: 'cb-sidebar-hdr-actions' })
-  const themeToggle = el(
-    'button',
-    {
-      type: 'button',
-      className: 'cb-icon-btn',
-      title: state.theme === 'dark' ? 'Light theme' : 'Dark theme',
-      'aria-label': 'Toggle theme',
-    },
-    svgIcon(state.theme === 'dark' ? 'sun' : 'moon', 15),
-  )
-  themeToggle.addEventListener('click', () => actions.toggleTheme())
-  hdrActions.appendChild(themeToggle)
+  const create = el('button', {
+    type: 'button', className: 'cb-icon-btn', title: 'New channel', 'aria-label': 'New channel',
+  }, svgIcon('plus', 16))
+  create.addEventListener('click', () => actions.openModal({ kind: 'new-channel' }))
+  hdrActions.appendChild(create)
 
   const closeMob = el(
     'button',
@@ -167,11 +143,17 @@ export function renderSidebar(state: UiState, actions: UiActions): HTMLElement {
   header.appendChild(hdrActions)
   aside.appendChild(header)
 
+  const search = el('button', {
+    type: 'button', className: 'cb-search-trigger', title: 'Search board (⌘K / Ctrl+K)',
+  }, svgIcon('search', 15), el('span', { textContent: 'Search board' }))
+  search.addEventListener('click', () => actions.openModal({ kind: 'search' }))
+  aside.appendChild(search)
+
   const scroll = el('div', { className: 'cb-sidebar-scroll' })
 
   // 1. Shortcuts (Google Chat + Twist)
   const shortcuts = el('div', { className: 'cb-nav-section' })
-  shortcuts.appendChild(el('div', { className: 'cb-nav-heading', textContent: 'Shortcuts' }))
+  shortcuts.appendChild(el('div', { className: 'cb-nav-heading', textContent: 'Workspace' }))
 
   const addShortcut = (
     label: string,
@@ -202,29 +184,28 @@ export function renderSidebar(state: UiState, actions: UiActions): HTMLElement {
 
   addShortcut('Home', 'home', state.workspace.kind === 'home', 0, 'default', () => actions.navigate({ kind: 'home' }))
   addShortcut(
-    'Mentions / Inbox',
+    'Inbox',
     'at',
     state.workspace.kind === 'inbox',
     state.unreadNotificationCount,
     state.urgentNotificationCount > 0 ? 'urgent' : 'default',
     () => actions.navigate({ kind: 'inbox' }),
   )
-  addShortcut('Pinned / Saved', 'pin', state.workspace.kind === 'pinned', state.allPins.length, 'default', () =>
+  addShortcut('Saved posts', 'pin', state.workspace.kind === 'pinned', state.allPins.length, 'default', () =>
     actions.navigate({ kind: 'pinned' }),
   )
   const decisionsBadge = needsYouCount(state)
-  addShortcut('Needs You (Decisions)', 'scale', state.workspace.kind === 'decisions', decisionsBadge, 'urgent', () =>
+  addShortcut('Decisions', 'scale', state.workspace.kind === 'decisions', decisionsBadge, 'urgent', () =>
     actions.navigate({ kind: 'decisions' }),
   )
   addShortcut(
-    'Beta Feedback',
+    'Feedback',
     'bug',
     state.workspace.kind === 'channel' && state.workspace.channel === 'meta/feedback',
     openFeedbackCount(state),
     'default',
     () => actions.openChannel('meta/feedback', 'forum'),
   )
-  scroll.appendChild(shortcuts)
 
   // 2. Direct Messages (Google Chat + Twist)
   const dmSection = el('div', { className: 'cb-nav-section' })
@@ -271,7 +252,6 @@ export function renderSidebar(state: UiState, actions: UiActions): HTMLElement {
       dmSection.appendChild(item)
     }
   }
-  scroll.appendChild(dmSection)
 
   // 3. Collapsible Spaces / Categories & Sub-Channels Tree (Discord + Twist)
   const sections = groupChannelsByCategory(state.flatChannels, state.activeSpace)
@@ -282,9 +262,9 @@ export function renderSidebar(state: UiState, actions: UiActions): HTMLElement {
 
     const collapseBtn = el(
       'button',
-      { type: 'button', className: 'cb-cat-toggle' },
+      { type: 'button', className: 'cb-cat-toggle', 'aria-expanded': String(!collapsed) },
       svgIcon(collapsed ? 'chevron-right' : 'chevron-down', 13),
-      el('span', { className: 'cb-nav-heading', textContent: sec.title }),
+      el('span', { className: 'cb-nav-heading', textContent: sec.key === 'Global' ? 'Channels' : sec.title }),
       collapsed && sec.totalUnread > 0
         ? el('span', { className: 'cb-badge', textContent: String(sec.totalUnread) })
         : null,
@@ -314,81 +294,64 @@ export function renderSidebar(state: UiState, actions: UiActions): HTMLElement {
         secWrap.appendChild(renderChannelItem(ch, sec.key, state, actions))
       }
     }
-    scroll.appendChild(secWrap)
+    if (scroll.childElementCount === 0) {
+      scroll.append(secWrap, shortcuts, dmSection)
+    } else {
+      scroll.appendChild(secWrap)
+    }
   }
 
-  const newChFoot = el(
-    'button',
-    { type: 'button', className: 'cb-nav-new-channel' },
-    svgIcon('plus', 14),
-    el('span', { textContent: 'New channel' }),
-  )
-  newChFoot.addEventListener('click', () => actions.openModal({ kind: 'new-channel' }))
-  scroll.appendChild(newChFoot)
+  if (sections.length === 0) scroll.append(shortcuts, dmSection)
 
-  // 4. Who Is Online compact roster
+  // Presence roster
   const onlineSection = el('div', { className: 'cb-nav-section cb-online-roster' })
   const onlinePeers = state.presence.filter((p) => p.status !== 'offline')
   onlineSection.appendChild(
     el('div', {
       className: 'cb-nav-heading',
-      textContent: `Who Is Online (${onlinePeers.length})`,
+      textContent: `Online (${onlinePeers.length})`,
     }),
   )
-  if (onlinePeers.length === 0) {
-    onlineSection.appendChild(el('div', { className: 'cb-muted-note', textContent: 'No active agent heartbeats yet' }))
-  } else {
-    for (const peer of onlinePeers.slice(0, 10)) {
-      const short = peer.profile ?? peer.handle.replace(/^.*\//, '')
-      const meta = [peer.harness, peer.model].filter(Boolean).join(' · ')
-      const row = el(
-        'button',
-        {
-          type: 'button',
-          className: 'cb-online-item',
-          title: `DM ${short}${peer.channel ? ` (in #${peer.channel})` : ''}`,
-        },
-        el('span', { className: `cb-dot cb-dot-${peer.status}` }),
-        el(
-          'div',
-          { className: 'cb-online-info' },
-          el('div', { className: 'cb-online-name', textContent: short }),
-          meta || peer.channel
-            ? el('div', {
-                className: 'cb-online-meta',
-                textContent: peer.channel ? `#${peer.channel}${meta ? ` • ${meta}` : ''}` : meta,
-              })
-            : null,
-        ),
-      )
-      row.addEventListener('click', () => {
-        void actions.openOrCreateDm(short)
-      })
-      onlineSection.appendChild(row)
-    }
+  for (const peer of onlinePeers.slice(0, 10)) {
+    const short = peer.profile ?? peer.handle.replace(/^.*\//, '')
+    const meta = [peer.harness, peer.model].filter(Boolean).join(' · ')
+    const row = el(
+      'button',
+      {
+        type: 'button',
+        className: 'cb-online-item',
+        title: `DM ${short}${peer.channel ? ` (in #${peer.channel})` : ''}`,
+      },
+      el('span', { className: `cb-dot cb-dot-${peer.status}` }),
+      el(
+        'div',
+        { className: 'cb-online-info' },
+        el('div', { className: 'cb-online-name', textContent: short }),
+        meta || peer.channel
+          ? el('div', {
+              className: 'cb-online-meta',
+              textContent: peer.channel ? `#${peer.channel}${meta ? ` • ${meta}` : ''}` : meta,
+            })
+          : null,
+      ),
+    )
+    row.addEventListener('click', () => {
+      void actions.openOrCreateDm(short)
+    })
+    onlineSection.appendChild(row)
   }
-  scroll.appendChild(onlineSection)
+  if (onlinePeers.length) scroll.appendChild(onlineSection)
   aside.appendChild(scroll)
 
-  // 5. Bottom current user presence footer card (Discord + Google Chat)
+  // Signed-in identity and personal presence
   const footer = el('div', { className: 'cb-user-card' })
-  const myName = state.me?.name ?? state.me?.handle ?? 'human'
-  const hue = avatarHue(myName)
+  if (!state.me) return aside
+  const myName = state.me.name || state.me.handle
   const av = el('div', { className: 'cb-avatar cb-avatar-sm', textContent: avatarMonogram(myName) })
-  av.style.setProperty('--av-hue', String(hue))
   footer.appendChild(av)
 
   const info = el('div', { className: 'cb-user-card-info' })
-  info.appendChild(
-    el(
-      'div',
-      { className: 'cb-user-card-name' },
-      el('span', { textContent: myName }),
-      state.me?.kind === 'person'
-        ? el('span', { className: 'cb-role-chip cb-role-human', textContent: 'HUMAN' })
-        : null,
-    ),
-  )
+  info.appendChild(el('div', { className: 'cb-user-card-name', textContent: myName, title: state.me.handle }))
 
   const select = el('select', { className: 'cb-status-select', 'aria-label': 'Your presence status' })
   for (const opt of [
@@ -406,6 +369,12 @@ export function renderSidebar(state: UiState, actions: UiActions): HTMLElement {
   })
   info.appendChild(select)
   footer.appendChild(info)
+  const syncState = state.sseStatus === 'live' ? 'Connected' : state.sseStatus === 'connecting' ? 'Connecting' : 'Reconnecting'
+  const refresh = el('button', {
+    type: 'button', className: 'cb-icon-btn', title: syncState + ' · Refresh board', 'aria-label': syncState + ' · Refresh board',
+  }, svgIcon('refresh', 14))
+  refresh.addEventListener('click', () => { void actions.refreshAll() })
+  footer.appendChild(refresh)
   aside.appendChild(footer)
 
   return aside
@@ -429,6 +398,7 @@ function renderChannelItem(
     {
       type: 'button',
       className: `cb-nav-item${isActive ? ' is-active' : ''}${(ch.unreadCount ?? 0) > 0 ? ' has-unread' : ''}`,
+      'aria-current': isActive ? 'page' : undefined,
       title: ch.topic ? `${ch.path} — ${ch.topic}` : ch.path,
     },
     svgIcon(sidebarChannelIcon(ch.kind), 14),

@@ -1,0 +1,130 @@
+{
+  "generated_at": "2026-11-27T05:32:12.840431+00:00",
+  "filters": {
+    "min_stars": 100,
+    "pushed_days": 75,
+    "language": null,
+    "forks_allowed": false,
+    "archived_allowed": false,
+    "noise_screen": true
+  },
+  "totals": {
+    "unique": 17,
+    "kept": 17,
+    "cut": 0
+  },
+  "queries": [
+    {
+      "query": "\"agent mail\" stars:>=100 pushed:>=2026-09-13 fork:false archived:false",
+      "total_count": 3,
+      "returned": 3
+    },
+    {
+      "query": "\"coding agents\" coordination stars:>=100 pushed:>=2026-09-13 fork:false archived:false",
+      "total_count": 6,
+      "returned": 5
+    },
+    {
+      "query": "topic:a2a-protocol stars:>=100 pushed:>=2026-09-13 fork:false archived:false",
+      "total_count": 21,
+      "returned": 5
+    },
+    {
+      "query": "\"agent teams\" \"claude code\" stars:>=100 pushed:>=2026-09-13 fork:false archived:false",
+      "total_count": 12,
+      "returned": 5
+    },
+    {
+      "query": "\"agent mesh\" stars:>=100 pushed:>=2026-09-13 fork:false archived:false",
+      "total_count": 2,
+      "returned": 2
+    },
+    {
+      "query": "\"message bus\" agents stars:>=100 pushed:>=2026-09-13 fork:false archived:false",
+      "total_count": 0,
+      "returned": 0
+    }
+  ],
+  "kept": [
+    {
+      "full_name": "SolaceProducts/solace-agent-mesh",
+      "url": "https://github.com/SolaceProducts/solace-agent-mesh",
+      "default_branch": "main",
+      "commit_days": 0,
+      "activity_verified": true,
+      "stale_default_branch": false
+    },
+    {
+      "full_name": "a2aproject/A2A",
+      "url": "https://github.com/a2aproject/A2A",
+      "default_branch": "main",
+      "commit_days": 1,
+      "activity_verified": true,
+      "stale_default_branch": false
+    },
+    {
+      "full_name": "NanmiCoder/cc-haha",
+      "url": "https://github.com/NanmiCoder/cc-haha",
+      "default_branch": "main",
+      "commit_days": 0,
+      "activity_verified": true,
+      "stale_default_branch": false
+    },
+    {
+      "full_name": "Dicklesworthstone/mcp_agent_mail",
+      "url": "https://github.com/Dicklesworthstone/mcp_agent_mail",
+      "default_branch": "main",
+      "commit_days": 4,
+      "activity_verified": true,
+      "stale_default_branch": false
+    },
+    {
+      "full_name": "Dicklesworthstone/ntm",
+      "url": "https://github.com/Dicklesworthstone/ntm",
+      "default_branch": "main",
+      "commit_days": 0,
+      "activity_verified": true,
+      "stale_default_branch": false
+    },
+    {
+      "full_name": "Dicklesworthstone/agentic_coding_flywheel_setup",
+      "url": "https://github.com/Dicklesworthstone/agentic_coding_flywheel_setup",
+      "default_branch": "main",
+      "commit_days": 0,
+      "activity_verified": true,
+      "stale_default_branch": false
+    },
+    {
+      "full_name": "google/agentmesh",
+      "url": "https://github.com/google/agentmesh",
+      "default_branch": "main",
+      "commit_days": 0,
+      "activity_verified": true,
+      "stale_default_branch": false
+    },
+    {
+      "full_name": "Bitterbot-AI/bitterbot-desktop",
+      "url": "https://github.com/Bitterbot-AI/bitterbot-desktop",
+      "default_branch": "main",
+      "commit_days": 0,
+      "activity_verified": true,
+      "stale_default_branch": false
+    },
+    {
+      "full_name": "a2aproject/a2a-python",
+      "url": "https://github.com/a2aproject/a2a-python",
+      "default_branch": "main",
+      "commit_days": 1,
+      "activity_verified": true,
+      "stale_default_branch": false
+    },
+    {
+      "full_name": "yetone/cumora",
+      "url": "https://github.com/yetone/cumora",
+      "default_branch": "main",
+      "commit_days": 25,
+      "activity_verified": true,
+      "stale_default_branch": false
+    }
+  ]
+}

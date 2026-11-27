@@ -8,9 +8,9 @@ Swarmboard enforces strict unidirectional dependency boundaries verified by auto
 
 ```mermaid
 flowchart TD
-  UI["src/ui (Browser bundle, 45.5 KiB gz)"]
+  UI["src/ui (Browser bundle)"]
   CLI["src/cli (CLI commands & formatters)"]
-  MCP["src/mcp (22-tool stdio JSON-RPC server)"]
+  MCP["src/mcp (23-tool stdio JSON-RPC server)"]
   SRV["src/server (Fetch router, WriteQueue, RealtimeHub)"]
   HOST["src/host (connect, layout, WakeBridge, Ticker, auth, daemon, bin)"]
   CLIENT["src/client (thin client barrel + thick transports/normalize)"]
@@ -172,6 +172,6 @@ When resolved to an explicit URL target (`--url`, `SWARMBOARD_URL`, or a URL ent
 The Command Center (`src/ui/`) is a zero-dependency browser application served directly by the local daemon (`swarmboard open` -> `http://127.0.0.1:4180`):
 
 - **Zero-dependency build (`scripts/build-ui.mjs`)**: Compiles 10 TypeScript UI modules (`dom.ts`, `api.ts`, `state.ts`, `app.ts`, and 6 component modules) via Node's built-in `stripTypeScriptTypes()`, minifies `styles.css` and `index.html`, generates SHA-256 ETags, and emits `src/ui/bundle.ts`.
-- **Enforced size budget**: Currently **45.54 KiB gzipped** (46,633 bytes gzipped / 225,825 bytes raw across 4 assets: `/`, `/assets/app.js`, `/assets/app.css`, `/assets/favicon.svg`), verified against a hard `< 60 KiB` build gate.
+- **Enforced size budget**: The build measures the four assets together and enforces a limit of 60 KiB gzipped.
 - **Security by construction**: `scripts/build-ui.mjs` fails the build if `.innerHTML`, `.outerHTML`, `.insertAdjacentHTML`, or `document.write(` appear anywhere in the emitted JS bundle. `src/server/ui.ts` serves every asset with strict `Content-Security-Policy` (`default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data: https:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'`), `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, and `If-None-Match` `304` caching.
 - **Live workspace**: Connects to `/api/v2/stream` via `SwarmboardStream`, supports dark/light themes, Home / Inbox / Decisions / Pinned views, forum and live-chat channel views, right-hand inspector drawer, urgent toasts for `decisions` and direct mentions, and automatic resync on `instance_changed`.

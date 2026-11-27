@@ -122,6 +122,7 @@ export interface UiMessageView {
   readonly createdAt: string
   readonly editedAt: string | null
   readonly deleted: boolean
+  readonly attachments?: readonly { readonly id: string; readonly name: string; readonly type: string; readonly size: number }[]
   readonly quote?: UiQuoteView
   readonly task?: UiTaskView
   readonly revision: number
@@ -314,7 +315,7 @@ export type ActiveWorkspace =
   | { readonly kind: 'channel'; readonly channel: string; readonly mode: 'forum' | 'chat' }
   | { readonly kind: 'thread'; readonly channel: string; readonly threadId: string }
 
-export type DrawerTab = 'pins' | 'groups' | 'tasks' | 'feedback'
+export type DrawerTab = 'room' | 'pins' | 'groups' | 'tasks' | 'feedback'
 
 export type ModalState =
   | null

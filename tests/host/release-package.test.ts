@@ -54,6 +54,9 @@ function seedHarnessHome(): string {
 
   write('.zshenv', 'export USER_KEEP=1\n')
   write('AGENTS.md', '# User Agents\n\nKeep me.\n')
+  write('dotfiles/claude.md', '\n# Keep Claude rules\n\n\n<!-- swarmboard:universal:start -->\nOld guidance\n<!-- swarmboard:universal:end -->\nTail rule\n')
+  fs.mkdirSync(path.join(home, '.claude'))
+  fs.symlinkSync('../dotfiles/claude.md', path.join(home, '.claude', 'CLAUDE.md'))
   write('.claude.json', JSON.stringify({ mcpServers: { keep: { command: 'echo' } } }, null, 2), 0o600)
   write('.codex/config.toml', 'model = "gpt-5"\n\n[mcp_servers.keep]\ncommand = "echo"\n', 0o600)
   write('.gemini/config/mcp_config.json', JSON.stringify({ mcpServers: { keep: { command: 'echo' } } }, null, 2))
@@ -95,6 +98,7 @@ describe('Built-in `swarmboard setup` and `swarmboard uninstall`', () => {
     expect(setupJson.globalBoard.channelsCreated).toBe(6)
     expect(setupJson.instructions).toEqual([])
     expect(fs.readFileSync(path.join(home, 'AGENTS.md'), 'utf8')).not.toContain('swarmboard:universal:start')
+    expect(fs.existsSync(path.join(home, 'CLAUDE.md'))).toBe(false)
 
     // 3. Re-run with full defaults -> adds instructions while keeping everything else idempotent
     const setup2Res = spawnSync(process.execPath, [DIST_BIN, 'setup', '--home', home, '--json'], {
@@ -111,7 +115,14 @@ describe('Built-in `swarmboard setup` and `swarmboard uninstall`', () => {
     expect(setup2Json.config.status).toBe('unchanged')
     expect(setup2Json.globalBoard.channelsCreated).toBe(0)
     expect(setup2Json.globalBoard.groupsCreated).toBe(0)
-    expect(fs.readFileSync(path.join(home, 'AGENTS.md'), 'utf8')).toContain('<!-- swarmboard:universal:start -->')
+    for (const rel of ['AGENTS.md', 'CLAUDE.md', '.codex/AGENTS.md', '.claude/CLAUDE.md']) {
+      const instructions = fs.readFileSync(path.join(home, rel), 'utf8')
+      expect(instructions.match(/<!-- swarmboard:universal:start -->/g), rel).toHaveLength(1)
+      expect(instructions, rel).toContain('Claude Code Ultracode, Codex Ultra')
+      expect(instructions, rel).toContain('board_post({ re: taskId')
+      expect(instructions, rel).not.toContain('Old guidance')
+    }
+    expect(fs.lstatSync(path.join(home, '.claude/CLAUDE.md')).isSymbolicLink()).toBe(true)
 
     // 4. Default uninstall removes symlinks, MCP entries, skills, instruction/shell blocks, while PRESERVING DB & config
     const uninstallRes = spawnSync(process.execPath, [DIST_BIN, 'uninstall', '--home', home, '--json'], {
@@ -147,6 +158,7 @@ describe('Built-in `swarmboard setup` and `swarmboard uninstall`', () => {
     const agentsMd = fs.readFileSync(path.join(home, 'AGENTS.md'), 'utf8')
     expect(agentsMd).toContain('Keep me.')
     expect(agentsMd).not.toContain('swarmboard:universal:start')
+    expect(fs.readFileSync(path.join(home, '.claude/CLAUDE.md'), 'utf8')).toBe('\n# Keep Claude rules\n\n\nTail rule\n')
 
     const zshenv = fs.readFileSync(path.join(home, '.zshenv'), 'utf8')
     expect(zshenv).toContain('export USER_KEEP=1')
@@ -212,7 +224,8 @@ describe('Standalone release package (`scripts/build-release.mjs`) & `install.sh
     expect(npmEntries.some((e) => e.startsWith('package/scripts/'))).toBe(false)
 
     // 2. Run install.sh --tarball into completely isolated /tmp directories (outside repo, zero external node_modules!)
-    const home = seedHarnessHome()
+    const home = mkTmp('sb-clean-install-home-')
+    fs.mkdirSync(path.join(home, '.gemini/config'), { recursive: true })
     const appDir = path.join(mkTmp('sb-standalone-app-'), 'app')
     const binDir = mkTmp('sb-standalone-bin-')
     const env = cleanEnv(home)
@@ -223,6 +236,19 @@ describe('Standalone release package (`scripts/build-release.mjs`) & `install.sh
       { cwd: os.tmpdir(), env, encoding: 'utf8', timeout: 30_000 },
     )
     expect(instRes.status, `install.sh stderr: ${instRes.stderr}\nstdout: ${instRes.stdout}`).toBe(0)
+    for (const name of ['AGENTS.md', 'CLAUDE.md']) {
+      expect(fs.readFileSync(path.join(home, name), 'utf8'), name).toContain('Collaborate throughout implementation')
+    }
+    const agyRules = fs.readFileSync(path.join(home, '.gemini/GEMINI.md'), 'utf8')
+    const agySkill = fs.readFileSync(path.join(home, '.gemini/config/skills/swarmboard/SKILL.md'), 'utf8')
+    for (const mode of ['/swarm', '/teamwork', '/boost']) {
+      expect(agyRules).toContain(mode)
+      expect(agySkill).toContain(mode)
+    }
+    const agyMcpPath = path.join(home, '.gemini/config/mcp_config.json')
+    const agyMcp = JSON.parse(fs.readFileSync(agyMcpPath, 'utf8')).mcpServers.swarmboard
+    expect(agyMcp.command).toBe(path.join(binDir, 'swarmboard-mcp'))
+    expect(agyMcp.env.SWARMBOARD_AGENT).toBe('agy')
     expect(fs.existsSync(path.join(appDir, 'node_modules', 'jose', 'package.json'))).toBe(true)
     expect(fs.existsSync(path.join(appDir, 'node_modules', 'zod', 'package.json'))).toBe(true)
 

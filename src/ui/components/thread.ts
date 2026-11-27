@@ -1,8 +1,6 @@
-// phpBB Thread View + Google Chat / Discord Live Feed Stream + Instant Human Drop-In Composer
-// with @mention/@group, #channel, and /slash autocomplete, Quote previews, Tag chips, Flag banners, and Task lifecycle bar.
+// Channel and thread timelines share the same message rows and composer.
 import type { UiActions } from '../actions.ts'
 import {
-  avatarHue,
   avatarMonogram,
   el,
   emojiDisplay,
@@ -10,7 +8,6 @@ import {
   firstLineTitle,
   formatCanonicalMentionsText,
   formatFullTime,
-  formatRelativeTime,
   QUICK_REACTION_CODES,
   renderRichText,
   svgIcon,
@@ -34,6 +31,23 @@ function threadPresenceForActor(actorId: string, handle: string, presence: reado
   return null
 }
 
+const dayLabel = new Intl.DateTimeFormat(undefined, { month: 'long', day: 'numeric', year: 'numeric' })
+const messageTime = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' })
+
+function appendTimeline(stream: HTMLElement, messages: readonly UiMessageView[], render: (msg: UiMessageView) => HTMLElement): void {
+  let previousDay = ''
+  const today = new Date().toDateString()
+  for (const msg of messages) {
+    const date = new Date(msg.createdAt)
+    const day = date.toDateString()
+    if (day !== previousDay && Number.isFinite(date.getTime())) {
+      stream.appendChild(el('div', { className: 'cb-day-divider', textContent: day === today ? 'Today' : dayLabel.format(date) }))
+      previousDay = day
+    }
+    stream.appendChild(render(msg))
+  }
+}
+
 export function renderThreadView(state: UiState, actions: UiActions): HTMLElement {
   const wrap = el('div', { className: 'cb-thread-view' })
   const tv = state.activeThread
@@ -48,14 +62,6 @@ export function renderThreadView(state: UiState, actions: UiActions): HTMLElemen
   // Header
   const header = el('div', { className: 'cb-thread-header' })
   const hLeft = el('div', { className: 'cb-thread-header-left' })
-  const backBtn = el(
-    'button',
-    { type: 'button', className: 'cb-btn cb-btn-ghost cb-btn-sm' },
-    el('span', { textContent: `← #${root.channel}` }),
-  )
-  backBtn.addEventListener('click', () => actions.openChannel(root.channel, root.channel.startsWith('dm/') ? 'chat' : 'forum'))
-  hLeft.appendChild(backBtn)
-
   hLeft.appendChild(el('h1', { className: 'cb-thread-title', textContent: firstLineTitle(root.text, 100, actorLabels) }))
   hLeft.appendChild(
     el('span', {
@@ -81,12 +87,13 @@ export function renderThreadView(state: UiState, actions: UiActions): HTMLElemen
   for (const [val, lbl] of [
     ['asc', 'Oldest first'],
     ['desc', 'Newest first'],
+    ['reactions', 'Most reacted'],
   ] as const) {
     const o = el('option', { value: val, textContent: lbl })
     if (state.threadSort === val) o.selected = true
     sortSel.appendChild(o)
   }
-  sortSel.addEventListener('change', () => actions.setThreadSort(sortSel.value as 'asc' | 'desc'))
+  sortSel.addEventListener('change', () => actions.setThreadSort(sortSel.value as UiState['threadSort']))
   hRight.appendChild(sortSel)
 
   const isAnnounced = state.channelPins.some((p) => p.rootId === root.id && p.scope === 'announcement')
@@ -137,7 +144,13 @@ export function renderThreadView(state: UiState, actions: UiActions): HTMLElemen
 
   // Posts list
   const stream = el('div', { className: 'cb-posts-stream' })
-  const allPosts = state.threadSort === 'asc' ? [root, ...tv.replies] : [...[...tv.replies].reverse(), root]
+  const replies = [...tv.replies]
+  if (state.threadSort === 'desc') replies.reverse()
+  if (state.threadSort === 'reactions') {
+    const count = (m: UiMessageView) => Object.values(m.reactions).reduce((n, actors) => n + actors.length, 0)
+    replies.sort((a, b) => count(b) - count(a) || b.createdAt.localeCompare(a.createdAt))
+  }
+  const allPosts = [root, ...replies]
   const fq = state.threadFilter.trim().toLowerCase()
   const visible = fq
     ? allPosts.filter((m) => {
@@ -146,9 +159,9 @@ export function renderThreadView(state: UiState, actions: UiActions): HTMLElemen
       })
     : allPosts
 
-  for (const msg of visible) {
-    stream.appendChild(renderStructuredPostCard(msg, msg.id === root.id, state, actions, knownGroups))
-  }
+  const row = (msg: UiMessageView) => renderStructuredPostCard(msg, msg.id === root.id, state, actions, knownGroups)
+  if (state.threadSort === 'reactions') stream.append(...visible.map(row))
+  else appendTimeline(stream, visible, row)
   wrap.appendChild(stream)
 
   // Quick reply chips (Google Chat style) + Composer
@@ -159,26 +172,15 @@ export function renderThreadView(state: UiState, actions: UiActions): HTMLElemen
 export function renderLiveChatFeed(channelPath: string, state: UiState, actions: UiActions): HTMLElement {
   const wrap = el('div', { className: 'cb-thread-view' })
   const isDm = channelPath.startsWith('dm/')
-  const chMeta = state.flatChannels.find((c) => c.path === channelPath) ?? null
   const knownGroups = new Set(state.groups.map((g) => g.handle.toLowerCase()))
 
-  const header = el('div', { className: 'cb-thread-header' })
-  const hLeft = el('div', { className: 'cb-thread-header-left' })
-  const titleText = isDm ? `DM with ${extractDmPeer(channelPath, state.me?.handle ?? null)}` : `#${channelPath}`
-  hLeft.appendChild(el('h1', { className: 'cb-thread-title', textContent: titleText }))
-  if (chMeta?.topic) {
-    hLeft.appendChild(el('span', { className: 'cb-muted-note', textContent: chMeta.topic }))
+  const pin = state.channelPins.find(p => p.channel === channelPath && p.message && !p.message.deleted)
+  if (pin?.message) {
+    const pinned = el('button', { type: 'button', className: 'cb-channel-pin', title: 'Open pinned thread' },
+      svgIcon('pin', 14), el('span', { textContent: pin.note || excerptText(pin.message.text, 140) || 'Pinned attachment' }))
+    pinned.addEventListener('click', () => actions.openThread(channelPath, pin.rootId))
+    wrap.appendChild(pinned)
   }
-  header.appendChild(hLeft)
-
-  const hRight = el('div', { className: 'cb-thread-header-actions' })
-  const markRead = el('button', { type: 'button', className: 'cb-btn cb-btn-ghost cb-btn-sm' }, svgIcon('check', 13), el('span', { textContent: 'Mark read' }))
-  markRead.addEventListener('click', () => {
-    void actions.markChannelRead(channelPath)
-  })
-  hRight.appendChild(markRead)
-  header.appendChild(hRight)
-  wrap.appendChild(header)
 
   const stream = el('div', { className: 'cb-posts-stream' })
   if (state.channelMessages.length === 0) {
@@ -191,15 +193,15 @@ export function renderLiveChatFeed(channelPath: string, state: UiState, actions:
       }),
     )
   } else {
-    for (const msg of state.channelMessages) {
-      stream.appendChild(renderStructuredPostCard(msg, msg.re === null, state, actions, knownGroups, true))
-    }
+    const counts = new Map(state.channelThreads.map((thread) => [thread.message.id, thread.replies]))
+    appendTimeline(stream, state.channelMessages, (msg) =>
+      renderStructuredPostCard(msg, msg.re === null, state, actions, knownGroups, true, counts.get(msg.id)))
   }
   wrap.appendChild(stream)
 
   const placeholder = isDm
     ? `Message ${extractDmPeer(channelPath, state.me?.handle ?? null)}…`
-    : `Message #${channelPath} (type @, #, or /)`
+    : `Message #${channelPath}`
   wrap.appendChild(renderComposerPanel(placeholder, state, actions, true))
   return wrap
 }
@@ -282,6 +284,7 @@ function renderStructuredPostCard(
   actions: UiActions,
   knownGroups: ReadonlySet<string>,
   showThreadLink = false,
+  replyCount?: number,
 ): HTMLElement {
   const authorHandle = msg.author?.handle ?? msg.by.profile ?? msg.by.actor.replace(/^local:user:/, '')
   const authorName = msg.author?.name ?? authorHandle
@@ -298,41 +301,46 @@ function renderStructuredPostCard(
     id: `post-${msg.id}`,
   })
 
-  // Left main column (phpBB Thread View structure)
+  const authorInfo = [
+    `@${shortHandle}`, isHuman ? 'Human' : 'Agent', msg.author?.verified ? 'Verified' : '',
+    pres?.harness, pres?.model, pres?.status, msg.author?.via?.name,
+  ].filter(Boolean).join(' · ')
+  const avatar = el('div', { className: 'cb-post-author', title: authorInfo, 'aria-hidden': 'true' },
+    el('span', { className: 'cb-avatar', textContent: avatarMonogram(authorName) }))
+  if (isOnline) avatar.appendChild(el('span', { className: `cb-presence-dot is-${pres!.status}` }))
+  card.appendChild(avatar)
   const main = el('div', { className: 'cb-post-main' })
-
-  // Post header toolbar
   const top = el('div', { className: 'cb-post-top' })
   const meta = el('div', { className: 'cb-post-meta' })
-  meta.appendChild(el('span', { className: 'cb-post-id', textContent: `#${msg.id}` }))
-  meta.appendChild(el('span', { className: 'cb-post-time', title: formatFullTime(msg.createdAt), textContent: formatRelativeTime(msg.createdAt) }))
-  if (msg.editedAt) {
-    meta.appendChild(el('span', { className: 'cb-post-edited', textContent: '(edited)' }))
+  if (isMe) {
+    meta.appendChild(el('strong', { className: 'cb-author-name', textContent: authorName, title: authorInfo }))
+  } else {
+    const author = el('button', { type: 'button', className: 'cb-author-name', textContent: authorName,
+      title: `Message @${shortHandle} · ${authorInfo}`, 'aria-label': `Direct message @${shortHandle}` })
+    author.addEventListener('click', () => { void actions.openOrCreateDm(shortHandle) })
+    meta.appendChild(author)
   }
-  if (isPinned) {
-    meta.appendChild(el('span', { className: 'cb-tag cb-tag-sticky', textContent: 'PINNED' }))
-  }
-  if (showThreadLink && msg.re === null) {
-    const openThr = el('button', { type: 'button', className: 'cb-link-btn', textContent: 'Open thread →' })
-    openThr.addEventListener('click', () => actions.openThread(msg.channel, msg.id))
-    meta.appendChild(openThr)
-  } else if (showThreadLink && msg.re !== null) {
-    const openThr = el('button', { type: 'button', className: 'cb-link-btn', textContent: `in thread #${msg.re}` })
-    openThr.addEventListener('click', () => actions.openThread(msg.channel, msg.re!))
-    meta.appendChild(openThr)
-  }
+  const date = new Date(msg.createdAt)
+  meta.appendChild(el('time', { className: 'cb-post-time', datetime: msg.createdAt,
+    title: `${formatFullTime(msg.createdAt)} · #${msg.id}`,
+    textContent: Number.isFinite(date.getTime()) ? messageTime.format(date) : msg.createdAt }))
+  if (msg.editedAt) meta.appendChild(el('span', { className: 'cb-post-edited', textContent: 'edited' }))
+  if (isPinned) meta.appendChild(el('span', { className: 'cb-tag cb-tag-sticky', textContent: 'Pinned' }))
   top.appendChild(meta)
 
   // Per-post action buttons (Quote, Pin, React, Edit, Delete, Flag)
   if (!msg.deleted) {
-    const toolbar = el('div', { className: 'cb-post-actions' })
+    const toolbar = el('div', { className: 'cb-post-actions', role: 'group', 'aria-label': `Actions for message #${msg.id}` })
     const mkAct = (label: string, icon: Parameters<typeof svgIcon>[0], onClick: () => void, cls = ''): HTMLButtonElement => {
-      const b = el('button', { type: 'button', className: `cb-post-act ${cls}`.trim(), title: label }, svgIcon(icon, 13), el('span', { textContent: label }))
+      const b = el('button', { type: 'button', className: `cb-post-act ${cls}`.trim(), title: label, 'aria-label': label }, svgIcon(icon, 15))
       b.addEventListener('click', onClick)
       return b
     }
 
-    toolbar.appendChild(mkAct('Quote', 'quote', () => actions.setComposerQuote(msg)))
+    if (showThreadLink && !msg.re && !replyCount) {
+      toolbar.appendChild(mkAct('Reply in thread', 'dm', () => actions.openThread(msg.channel, msg.id)))
+    }
+    toolbar.appendChild(mkAct(showThreadLink ? 'Quote' : 'Reply to message', 'quote', () => actions.setComposerQuote(msg)))
     toolbar.appendChild(
       mkAct(isPinned ? 'Unpin' : 'Pin', 'pin', () => {
         if (isPinned) void actions.unpinMessage(msg.id)
@@ -497,44 +505,31 @@ function renderStructuredPostCard(
     main.appendChild(footRow)
   }
 
+  if (!msg.deleted) {
+    for (const file of msg.attachments ?? []) {
+      const href = `/api/board/attachments/${encodeURIComponent(file.id)}`
+      const size = file.size < 1024 ? `${file.size} B` : file.size < 1048576
+        ? `${Math.ceil(file.size / 1024)} KB` : `${(file.size / 1048576).toFixed(1)} MB`
+      const link = el('a', { className: 'cb-file-chip', href, download: file.name,
+        'aria-label': `Download ${file.name} (${size})` })
+      if (['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(file.type)) {
+        link.appendChild(el('img', { className: 'cb-file-preview', src: href, alt: '', loading: 'lazy' }))
+      }
+      link.appendChild(el('span', { className: 'cb-file-name', textContent: file.name }))
+      link.appendChild(el('span', { className: 'cb-file-size', textContent: size }))
+      main.appendChild(link)
+    }
+  }
+  if (showThreadLink && (msg.re || replyCount || msg.deleted)) {
+    const rootId = msg.re ?? msg.id
+    const label = msg.re ? `Thread #${rootId}` : replyCount
+      ? `${replyCount} ${replyCount === 1 ? 'reply' : 'replies'}` : 'Reply'
+    const thread = el('button', { type: 'button', className: 'cb-thread-chip', title: `Open thread #${rootId}` },
+      svgIcon('dm', 13), el('span', { textContent: label }))
+    thread.addEventListener('click', () => actions.openThread(msg.channel, rootId))
+    main.appendChild(thread)
+  }
   card.appendChild(main)
-
-  // Right author metadata strip (phpBB Thread View!)
-  const authorAside = el('aside', { className: 'cb-post-author' })
-  if (isOnline) {
-    authorAside.appendChild(el('div', { className: `cb-online-ribbon is-${pres!.status}`, textContent: pres!.status.toUpperCase() }))
-  }
-  const av = el('div', { className: 'cb-avatar', textContent: avatarMonogram(authorName) })
-  av.style.setProperty('--av-hue', String(avatarHue(authorHandle)))
-  authorAside.appendChild(av)
-  authorAside.appendChild(el('div', { className: 'cb-author-name', textContent: authorName }))
-  authorAside.appendChild(el('div', { className: 'cb-author-handle', textContent: `@${shortHandle}` }))
-  authorAside.appendChild(
-    el('span', {
-      className: `cb-role-chip ${isHuman ? 'cb-role-human' : 'cb-role-agent'}`,
-      textContent: isHuman ? (msg.author?.verified ? 'HUMAN ✓' : 'HUMAN') : 'AGENT',
-    }),
-  )
-  if (pres?.harness || pres?.model) {
-    authorAside.appendChild(
-      el('div', {
-        className: 'cb-author-tech',
-        textContent: [pres.harness, pres.model].filter(Boolean).join(' · '),
-      }),
-    )
-  } else if (msg.author?.via?.name) {
-    authorAside.appendChild(el('div', { className: 'cb-author-tech', textContent: `via ${msg.author.via.name}` }))
-  }
-
-  if (!isMe) {
-    const dmBtn = el('button', { type: 'button', className: 'cb-btn cb-btn-ghost cb-btn-xs cb-dm-btn', textContent: 'DM' })
-    dmBtn.addEventListener('click', () => {
-      void actions.openOrCreateDm(shortHandle)
-    })
-    authorAside.appendChild(dmBtn)
-  }
-
-  card.appendChild(authorAside)
   return card
 }
 
@@ -546,7 +541,7 @@ function renderComposerPanel(
 ): HTMLElement {
   const wrap = el('div', { className: 'cb-composer-wrap' })
 
-  // Google Chat-style quick reply chips
+  const tools = el('div', { className: 'cb-composer-tools' })
   if (showQuickChips) {
     const chips = el('div', { className: 'cb-quick-chips' })
     for (const text of ['Ack', 'LGTM', 'Needs review', 'Approved — proceed']) {
@@ -556,7 +551,9 @@ function renderComposerPanel(
       })
       chips.appendChild(chip)
     }
-    wrap.appendChild(chips)
+    const menu = el('details', { className: 'cb-quick-menu' },
+      el('summary', { title: 'Quick replies', 'aria-label': 'Quick replies' }, svgIcon('smile', 17)), chips)
+    tools.appendChild(menu)
   }
 
   // Quote preview bar
@@ -576,7 +573,6 @@ function renderComposerPanel(
 
   // Twist-style Tag recipient chips row
   const tagRow = el('div', { className: 'cb-composer-tags' })
-  tagRow.appendChild(el('span', { className: 'cb-tag-label', textContent: 'Tag:' }))
   for (const tag of state.composerTags) {
     const chip = el('span', { className: 'cb-tag-chip' })
     chip.appendChild(el('span', { textContent: tag.startsWith('@') ? tag : `@${tag}` }))
@@ -602,8 +598,8 @@ function renderComposerPanel(
       tagSel.value = ''
     }
   })
-  tagRow.appendChild(tagSel)
-  wrap.appendChild(tagRow)
+  tools.prepend(el('label', { className: 'cb-tag-control', title: 'Add tag recipient' }, svgIcon('at', 17), tagSel))
+  if (state.composerTags.length) wrap.appendChild(tagRow)
 
   // Composer box + live @ / # / slash autocomplete popover
   const box = el('div', { className: 'cb-composer-box' })
@@ -613,7 +609,7 @@ function renderComposerPanel(
   const ta = el('textarea', {
     className: 'cb-composer-input',
     'data-focus-key': 'composer-input',
-    rows: 2,
+    rows: 1,
     placeholder,
     'aria-label': placeholder,
   })
@@ -744,19 +740,9 @@ function renderComposerPanel(
   box.appendChild(ta)
 
   const foot = el('div', { className: 'cb-composer-foot' })
-  const who = state.me?.handle ?? 'human'
-  foot.appendChild(
-    el('span', {
-      className: 'cb-composer-hint',
-      textContent: `Posting as ${who} (${state.me?.kind === 'person' ? 'Human' : 'Agent'}) • @ mention • # channel • / actions • ⌘Enter send`,
-    }),
-  )
-  const sendBtn = el(
-    'button',
-    { type: 'button', className: 'cb-btn cb-btn-primary cb-btn-sm' },
-    svgIcon('send', 13),
-    el('span', { textContent: 'Send' }),
-  )
+  foot.appendChild(tools)
+  const sendBtn = el('button', { type: 'button', className: 'cb-composer-send',
+    'aria-label': 'Send message', title: 'Send message (Ctrl or ⌘ + Enter)' }, svgIcon('send', 16))
   sendBtn.addEventListener('click', () => {
     void actions.sendComposerMessage()
   })
