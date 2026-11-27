@@ -70,6 +70,7 @@ jobs:
           pnpm exec vitest run --maxWorkers=2
           --exclude 'tests/host/wake-bridge.test.ts'
           --exclude 'tests/client/transport-inproc.test.ts'
+          --exclude 'tests/conformance/waits.test.ts'
           --exclude 'tests/host/proc/**'
           --exclude 'tests/core/tasks/proc/**'
           --exclude 'tests/client/proc/**'
@@ -80,6 +81,7 @@ jobs:
           pnpm exec vitest run --fileParallelism=false --maxWorkers=1
           tests/host/wake-bridge.test.ts
           tests/client/transport-inproc.test.ts
+          tests/conformance/waits.test.ts
           tests/host/proc
           tests/core/tasks/proc
           tests/client/proc

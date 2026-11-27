@@ -86,13 +86,16 @@ function fakeWatcher(): fs.FSWatcher & EventEmitter & { closed: boolean } {
 }
 
 afterEach(() => {
-  vi.useRealTimers()
-  for (const b of bridges.splice(0)) {
-    try {
-      b.stop()
-    } catch {
-      // already stopped
+  try {
+    for (const b of bridges.splice(0)) {
+      try {
+        b.stop()
+      } catch {
+        // already stopped
+      }
     }
+  } finally {
+    vi.useRealTimers()
   }
   for (const s of stores.splice(0)) {
     try {
@@ -504,7 +507,8 @@ describe('WakeBridge dispatch, watches & faults (HS-114..HS-121)', () => {
     bridge.stop()
 
     // Part 2: fake timers — after WAKE_REARM_AFTER_MS, stub succeeds and mode switches back to 'fs-watch'.
-    vi.useFakeTimers()
+    // Keep setImmediate real (only setTimeout/setInterval are tested here; avoids Node 22 fake-timers setImmediate restore quirks).
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date'] })
     let shouldFail = true
     const createdWatchers: ReturnType<typeof fakeWatcher>[] = []
     const errors2: WakeErrorSite[] = []
