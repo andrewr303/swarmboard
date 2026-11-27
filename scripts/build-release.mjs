@@ -192,6 +192,7 @@ export function buildRelease(argv = process.argv.slice(2)) {
     }
 
     // 3. Canonical agent skills
+    fs.copyFileSync(path.join(REPO_ROOT, 'docs', 'integrations.md'), path.join(stageDir, 'docs', 'integrations.md'))
     for (const fname of REQUIRED_SKILL_FILES) {
       fs.copyFileSync(path.join(REPO_ROOT, 'docs', 'skill', fname), path.join(stageDir, 'docs', 'skill', fname))
     }

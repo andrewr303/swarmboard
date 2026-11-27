@@ -2,6 +2,7 @@
 // claimReadyTask under lock hold, and CON-1 streak busy-retry late in a 60 s wait — both fake-timer unit twin and
 // real 45 s cross-process test).
 import { fork, type ChildProcess } from 'node:child_process'
+import { once } from 'node:events'
 import * as fs from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
@@ -212,20 +213,8 @@ describe('Mode 1 waits (HS-170..HS-172, HS-194)', () => {
       )
       children.push(child)
 
-      let committedTaskId = ''
-      let commitAtNs = 0n
-      await new Promise<void>((res, rej) => {
-        child.on('message', (raw: unknown) => {
-          const m = raw as { ready?: boolean; committed?: boolean; taskId?: string; commitAtNs?: string; error?: string }
-          if (m?.ready) res()
-          if (m?.committed) {
-            committedTaskId = String(m.taskId)
-            commitAtNs = BigInt(m.commitAtNs!)
-          }
-          if (m?.error) rej(new Error(m.error))
-        })
-        child.on('error', rej)
-      })
+      const [ready] = await once(child, 'message')
+      expect(ready).toMatchObject({ ready: true })
 
       const started = performance.now()
       const waiting = call(t, 'claimReadyTask', { channel: 'work', wait: 60 }) as Promise<{
@@ -234,20 +223,23 @@ describe('Mode 1 waits (HS-170..HS-172, HS-194)', () => {
 
       // Wait 45 seconds (past the default 30 s busy budget!), then trigger createTask + immediate 300 ms BEGIN IMMEDIATE.
       await sleep(45_000)
+      const receipt = once(child, 'message')
       child.send({ go: true })
 
       const claimed = await waiting
       const resolvedAtNs = process.hrtime.bigint()
       const totalElapsed = performance.now() - started
 
-      expect(claimed.task?.id).toBe(committedTaskId)
-      expect(committedTaskId).not.toBe('')
+      // The file wake and IPC receipt can arrive in either order. Measure the claim before awaiting IPC.
+      const [commit] = await receipt
+      expect(commit).toMatchObject({ committed: true, taskId: expect.stringMatching(/^\d+$/) })
+      expect(claimed.task?.id).toBe(commit.taskId)
       // Core claimReady now retries transient SQLITE_BUSY internally during wait re-polls (F23 fix),
       // so the 300ms lock hold at 45s is absorbed cleanly without giving up (transport streak retry
       // remains verified by the fake-timer unit twin above).
       expect(t.stats().busyGiveUps).toBe(0)
       expect(totalElapsed).toBeLessThan(60_000)
-      const sinceCommitMs = Number(resolvedAtNs - commitAtNs) / 1e6
+      const sinceCommitMs = Number(resolvedAtNs - BigInt(commit.commitAtNs)) / 1e6
       expect(sinceCommitMs).toBeLessThan(2_000)
     },
     120_000,

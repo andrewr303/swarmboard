@@ -219,6 +219,7 @@ describe('Standalone release package (`scripts/build-release.mjs`) & `install.sh
     expect(npmEntries).toContain('package/package.json')
     expect(npmEntries).toContain('package/dist/bin/swarmboard.mjs')
     expect(npmEntries).toContain('package/docs/skill/SKILL.md')
+    expect(npmEntries).toContain('package/docs/integrations.md')
     expect(npmEntries.some((e) => e.startsWith('package/src/'))).toBe(false)
     expect(npmEntries.some((e) => e.startsWith('package/tests/'))).toBe(false)
     expect(npmEntries.some((e) => e.startsWith('package/scripts/'))).toBe(false)
@@ -226,6 +227,7 @@ describe('Standalone release package (`scripts/build-release.mjs`) & `install.sh
     // 2. Run install.sh --tarball into completely isolated /tmp directories (outside repo, zero external node_modules!)
     const home = mkTmp('sb-clean-install-home-')
     fs.mkdirSync(path.join(home, '.gemini/config'), { recursive: true })
+    fs.mkdirSync(path.join(home, '.andrewcode'))
     const appDir = path.join(mkTmp('sb-standalone-app-'), 'app')
     const binDir = mkTmp('sb-standalone-bin-')
     const env = cleanEnv(home)
@@ -236,6 +238,9 @@ describe('Standalone release package (`scripts/build-release.mjs`) & `install.sh
       { cwd: os.tmpdir(), env, encoding: 'utf8', timeout: 30_000 },
     )
     expect(instRes.status, `install.sh stderr: ${instRes.stderr}\nstdout: ${instRes.stdout}`).toBe(0)
+    expect(fs.readFileSync(path.join(appDir, 'docs/integrations.md'), 'utf8')).toContain('andrewcode-json')
+    const andrewMcp = JSON.parse(fs.readFileSync(path.join(home, '.andrewcode/mcp.json'), 'utf8'))
+    expect(andrewMcp.mcpServers.swarmboard.command).toBe(path.join(binDir, 'swarmboard-mcp'))
     for (const name of ['AGENTS.md', 'CLAUDE.md']) {
       expect(fs.readFileSync(path.join(home, name), 'utf8'), name).toContain('Collaborate throughout implementation')
     }

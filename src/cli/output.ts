@@ -23,7 +23,14 @@ import {
   formatPresenceLine,
   formatTaskLine,
   formatThreadLine,
+  type CompactLatestReply,
 } from '../client/format.ts'
+import {
+  buildThreadHandoffMarkdownPayload,
+  formatThreadHandoffMarkdown,
+  type ThreadHandoff,
+} from '../client/handoff.ts'
+import { collectEnvSecrets, redactSecrets } from '../client/redact.ts'
 import type { Env } from '../client/resolve.ts'
 import type {
   AgentInboxView,
@@ -62,30 +69,7 @@ export interface Formatter {
   }
 }
 
-const TOKEN_WIRE_RE = /(?<![A-Za-z0-9_-])(sb_[a-z2-7]{12})_[A-Za-z0-9_-]{43}(?![A-Za-z0-9_-])/g
-const BEARER_RE = /\b(Bearer\s+)([A-Za-z0-9._~+/=-]{12,})\b/gi
-
-/** Collects known runtime secrets from env so they can never accidentally appear in diagnostic/error output. */
-export function collectEnvSecrets(env: Env): string[] {
-  const out: string[] = []
-  for (const key of ['SWARMBOARD_TOKEN', 'BOARD_TOKEN']) {
-    const val = env[key]?.trim()
-    if (val && val.length >= 8) out.push(val)
-  }
-  return out
-}
-
-/** Redacts Swarmboard bearer tokens, generic Bearer credentials, and known env secrets from any string. */
-export function redactSecrets(text: string, extraSecrets: readonly string[] = []): string {
-  let out = text.replace(TOKEN_WIRE_RE, '$1_[redacted]')
-  out = out.replace(BEARER_RE, '$1[redacted]')
-  for (const secret of extraSecrets) {
-    if (secret.length >= 8 && out.includes(secret)) {
-      out = out.split(secret).join('[redacted]')
-    }
-  }
-  return out
-}
+export { collectEnvSecrets, redactSecrets }
 
 export function resolveOutputMode(globals: CliGlobalFlags, stdoutIsTTY: boolean): OutputMode {
   if (globals.json) return 'json'
@@ -257,6 +241,33 @@ export function renderThread(fmt: Formatter, thread: ThreadView): void {
     fmt.line(`    ${r.deleted ? s.dim('(deleted)') : r.text}`)
   }
   fmt.line(fmt.style.dim(`cursor: ${thread.cursor}`))
+}
+
+export function renderThreadHandoff(fmt: Formatter, report: ThreadHandoff, markdown = false): void {
+  if (fmt.mode === 'json') {
+    fmt.json(markdown ? buildThreadHandoffMarkdownPayload(report, fmt.secrets) : report)
+    return
+  }
+  if (markdown) {
+    fmt.line(formatThreadHandoffMarkdown(report, fmt.secrets))
+    return
+  }
+  const { rootId, channel, subject, task, items, latestReply, coverage } = report
+  fmt.line(`#${rootId} [${channel}] ${subject || '(no text)'}`)
+  if (task) {
+    fmt.line(`Task: ${task.state} · owner ${task.owner}${task.for ? ` · assigned to ${task.for}` : ''}`)
+    if (task.claim) fmt.line(`Claim: ${task.claim.actor} until ${task.claim.until}`)
+    if (task.blocked) fmt.line(`Blocked: ${task.blocked.reason}`)
+    if (task.reason) fmt.line(`Reason: ${task.reason}`)
+    if (task.result) fmt.line(`Recorded result: ${task.result}`)
+  }
+  const source = (post: CompactLatestReply) =>
+    `#${post.id} ${post.handle ? `@${post.handle}` : post.by} · ${post.excerpt || '(no text)'}`
+  for (const item of items) fmt.line(`[${item.kind}] ${source(item)}`)
+  if (!items.length) fmt.line('No handoff labels or markers in this window.')
+  if (latestReply && !items.some(item => item.id === latestReply.id)) fmt.line(`Latest reply: ${source(latestReply)}`)
+  const window = coverage.after ? `after ${coverage.after}` : 'latest'
+  fmt.line(`Replies scanned: ${coverage.repliesScanned} (${window}${coverage.limitReached ? ', limit reached' : ''})`)
 }
 
 export function renderThreadsPage(fmt: Formatter, page: ThreadsPage): void {

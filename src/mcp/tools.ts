@@ -3,6 +3,7 @@
 // Zero direct imports of core or host modules.
 import type { BoardClient, TaskInBatch } from '../client/client.ts'
 import { clientError, isBoardError } from '../client/errors.ts'
+import { buildThreadHandoffMarkdownPayload, readThreadHandoff } from '../client/handoff.ts'
 import { insightViews, isInsightView } from '../client/insight-views.ts'
 import {
   compactAgentInbox,
@@ -47,6 +48,7 @@ export interface ToolExecutionContext {
   readonly presence: PresenceManager
   readonly signal?: AbortSignal
   readonly waitCapS?: number
+  readonly secrets?: readonly string[]
 }
 
 // ---- Exact 23-tool definitions (§3.3)
@@ -139,7 +141,7 @@ export const MCP_TOOLS: readonly McpToolDefinition[] = Object.freeze([
   {
     name: 'board_read',
     description:
-      'Read a channel (forum-ordered threads or flat messages) OR read a full thread/task by ID (12, #12, msg_12, thr_...).',
+      'Read a channel, a thread/task by ID, or a thread handoff with labeled or inline-marked decisions, status, todos, results, and recorded task state.',
     inputSchema: {
       type: 'object',
       required: ['target'],
@@ -149,6 +151,8 @@ export const MCP_TOOLS: readonly McpToolDefinition[] = Object.freeze([
           description: 'Channel path (e.g. general) OR message/thread ID (e.g. 12, #12, thr_...).',
         },
         kind: { type: 'string', enum: ['auto', 'channel', 'thread'], description: 'Disambiguate target (default auto).' },
+        handoff: { type: 'boolean', description: 'Thread only. Include the root and up to limit replies (default 50), extracting handoff=decision|todo|status|result labels and fallback [DECISION]/[TODO]/[STATUS]/[RESULT] markers.' },
+        markdown: { type: 'boolean', description: 'Requires handoff=true. Return a portable, secret-redacted Markdown handoff string with thread metadata and coverage.' },
         limit: { type: 'integer', minimum: 1, maximum: 500 },
         after: { type: 'string' },
         before: { type: 'string' },
@@ -937,6 +941,22 @@ export async function callMcpTool(name: string, rawArgs: unknown, ctx: ToolExecu
       const maxCharsOpts = maxCharsRaw !== undefined ? { maxChars: maxCharsRaw as number | null } : undefined
 
       const readAsThread = targetKind === 'thread' || (targetKind === 'auto' && isMessageRef(target))
+      const handoff = optBool(args, 'handoff') === true
+      const markdown = optBool(args, 'markdown') === true
+      if (handoff) {
+        if (!readAsThread) throw clientError('invalid_request', 'handoff requires a message or thread ID')
+        if (flat || before !== undefined || ['order', 'pinnedFirst', 'includeMeta', 'by', 'mentions', 'label'].some(key => args[key] !== undefined)) {
+          throw clientError('invalid_request', 'handoff accepts thread pagination (limit and after), not channel filters')
+        }
+        const report = await readThreadHandoff(client, target, {
+          limit, after, maxChars: compact ? undefined : null, ...maxCharsOpts,
+          redact: markdown ? ctx.secrets ?? [] : undefined,
+        }, callOpts)
+        return markdown ? buildThreadHandoffMarkdownPayload(report, ctx.secrets) : report
+      }
+      if (markdown) {
+        throw clientError('invalid_request', 'markdown requires handoff=true')
+      }
       if (readAsThread) {
         const thread = await client.thread(
           target,

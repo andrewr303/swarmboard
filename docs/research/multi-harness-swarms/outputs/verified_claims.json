@@ -1,0 +1,200 @@
+[
+  {
+    "claim_id": "clm_001",
+    "text": "Concord's SDK Stop waiter and agent-comms' interactive Claude wait hook use exit 2 and stderr for a wake. Concord describes hook-only recipients waiting until a later turn. The agent-comms Codex path queues a message for a thread.",
+    "source_ids": [
+      "src_0",
+      "src_2",
+      "src_4",
+      "src_11"
+    ],
+    "claim_type": "numeric",
+    "risk": "high",
+    "counter_search": {
+      "query": "Do these integrations treat other exit codes as a wake or rely on Claude's hook exit convention to start a Codex turn?",
+      "urls": [
+        "https://github.com/Get-Concord-AI/concord-mcp/blob/3d8fd8ed27e613bb7874b9432f35e724396dbae6/src/cli/commands/inbox-rewake.ts",
+        "https://github.com/Get-Concord-AI/concord-mcp/blob/3d8fd8ed27e613bb7874b9432f35e724396dbae6/docs/messaging-v2.md",
+        "https://github.com/pbroom/agent-comms/blob/e6b421f6d998757f6f483606bae6c64eeaf91df7/integrations/claude-code/wait.sh",
+        "https://github.com/pbroom/agent-comms/blob/e6b421f6d998757f6f483606bae6c64eeaf91df7/agent_comms/waiter.py"
+      ],
+      "summary": "Checked the SDK entrypoint predicate, the agent-comms wrapper's exit-code and text checks, the Codex queue call, and Concord's local delivery guide. The wrapper silences other outcomes. The Codex path uses a separate queue command."
+    },
+    "status": "verified",
+    "status_reason": "ok",
+    "primary_source": true
+  },
+  {
+    "claim_id": "clm_002",
+    "text": "The agent-comms human summary reports counts and identifiers, and its Claude wake wrapper restricts the text it forwards. Octopus includes the queued task description in teammate feedback.",
+    "source_ids": [
+      "src_3",
+      "src_4",
+      "src_6"
+    ],
+    "claim_type": "descriptive",
+    "risk": "normal",
+    "status": "verified",
+    "status_reason": "ok",
+    "primary_source": true
+  },
+  {
+    "claim_id": "clm_003",
+    "text": "Concord and agent-comms both stand down superseded waiters. Concord compares an agent-keyed token file. The agent-comms conversation waiter checks the hub's superseded response.",
+    "source_ids": [
+      "src_0",
+      "src_11"
+    ],
+    "claim_type": "descriptive",
+    "risk": "normal",
+    "status": "verified",
+    "status_reason": "ok",
+    "primary_source": true
+  },
+  {
+    "claim_id": "clm_004",
+    "text": "Agent Room extracts marked message text into records with authors and message IDs. Concord renders structured handoff fields as Markdown. Octopus exports selected state as JSON and applies pattern-based redaction to text fields.",
+    "source_ids": [
+      "src_1",
+      "src_5",
+      "src_7"
+    ],
+    "claim_type": "descriptive",
+    "risk": "normal",
+    "status": "verified",
+    "status_reason": "ok",
+    "primary_source": true
+  },
+  {
+    "claim_id": "clm_005",
+    "text": "AndrewCode expands item templates into prompts for its swarm service. Fusion passes prompt files and identity to nested AndrewCode processes. Antigravity describes a coordinator assigning named workers on its own swarm board.",
+    "source_ids": [
+      "src_8",
+      "src_9",
+      "src_16"
+    ],
+    "claim_type": "descriptive",
+    "risk": "normal",
+    "status": "verified",
+    "status_reason": "ok",
+    "primary_source": true
+  },
+  {
+    "claim_id": "clm_006",
+    "text": "Claude Code documents exit 2 as feedback that keeps a teammate working at TeammateIdle. Octopus takes the first item from a nonempty phase queue and sends its task description on stderr using that exit.",
+    "source_ids": [
+      "src_6",
+      "src_13"
+    ],
+    "claim_type": "numeric",
+    "risk": "high",
+    "counter_search": {
+      "query": "Does the pinned Octopus hook check task dependencies or claim shared-board work before keeping a teammate active?",
+      "urls": [
+        "https://github.com/nyldn/claude-octopus/blob/1b61fcf22be0ba7119ba45d91fde7e268f8bf2de/hooks/teammate-idle-dispatch.sh",
+        "https://code.claude.com/docs/en/agent-teams.md"
+      ],
+      "summary": "Read the phase and queue guards, the head-item removal, feedback branch and empty-queue path. Queue length drives dispatch. The host guide defines the idle feedback convention separately from task completion."
+    },
+    "status": "verified",
+    "status_reason": "ok",
+    "primary_source": true
+  },
+  {
+    "claim_id": "clm_007",
+    "text": "AWS CLI Agent Orchestrator keeps an existing MCP server on a profile name collision. The agent-comms Claude installer stops on a registered name. AndrewCode's global add rejects a duplicate in the MCP file under its resolved home directory.",
+    "source_ids": [
+      "src_10",
+      "src_12",
+      "src_29",
+      "src_30"
+    ],
+    "claim_type": "descriptive",
+    "risk": "normal",
+    "status": "verified",
+    "status_reason": "ok",
+    "primary_source": true
+  },
+  {
+    "claim_id": "clm_008",
+    "text": "The pinned root LICENSE files in Concord, agent-comms, Agent Room, Claude Octopus, AndrewCode and Fusion carry MIT terms requiring the copyright and permission notices in copies or substantial portions. Octopus separately identifies third-party skill adaptations.",
+    "source_ids": [
+      "src_17",
+      "src_18",
+      "src_19",
+      "src_20",
+      "src_21",
+      "src_22",
+      "src_25",
+      "src_27"
+    ],
+    "claim_type": "legal",
+    "risk": "high",
+    "counter_search": {
+      "query": "Do the actual root license texts differ from the SPDX MIT notice condition, and does Octopus identify separately attributed material?",
+      "urls": [
+        "https://github.com/Get-Concord-AI/concord-mcp/blob/3d8fd8ed27e613bb7874b9432f35e724396dbae6/LICENSE",
+        "https://github.com/pbroom/agent-comms/blob/e6b421f6d998757f6f483606bae6c64eeaf91df7/LICENSE",
+        "https://github.com/robinAKL/agent-room/blob/f96a602baf952e4d2824460bbd39507b7f1bd1ac/LICENSE",
+        "https://github.com/nyldn/claude-octopus/blob/1b61fcf22be0ba7119ba45d91fde7e268f8bf2de/LICENSE",
+        "https://github.com/andrewr303/andrewcode/blob/cc530f7373d4415b5a0438d059d4a5c2d80a4fa8/LICENSE",
+        "https://github.com/andrewr303/agent-swarm-fusion/blob/282bba99d7719387b655b824afe056c998c22e42/LICENSE",
+        "https://spdx.org/licenses/MIT.html",
+        "https://github.com/nyldn/claude-octopus/blob/1b61fcf22be0ba7119ba45d91fde7e268f8bf2de/THIRD_PARTY_NOTICES.md"
+      ],
+      "summary": "Compared the pinned files from the permission paragraph through the disclaimer after normalizing whitespace. All six bodies match. Checked the notice condition against SPDX and read the separate Octopus third-party notice. This finding concerns the named root files."
+    },
+    "status": "verified",
+    "status_reason": "ok",
+    "primary_source": true
+  },
+  {
+    "claim_id": "clm_009",
+    "text": "The AWS CLI Agent Orchestrator root LICENSE contains Apache-2.0 and its NOTICE names Amazon. Section 4 describes the license copy, notices for changed files, and the applicable attribution notices for redistribution.",
+    "source_ids": [
+      "src_23",
+      "src_24",
+      "src_26"
+    ],
+    "claim_type": "legal",
+    "risk": "high",
+    "counter_search": {
+      "query": "Does the pinned AWS distribution include a separate NOTICE, and what does its license require of redistributed material?",
+      "urls": [
+        "https://github.com/awslabs/cli-agent-orchestrator/blob/d6afc7cf0046ed663d90c535628ead58cd9068e4/LICENSE",
+        "https://github.com/awslabs/cli-agent-orchestrator/blob/d6afc7cf0046ed663d90c535628ead58cd9068e4/NOTICE",
+        "https://spdx.org/licenses/Apache-2.0.html"
+      ],
+      "summary": "Read the pinned LICENSE and NOTICE, and compared the redistribution wording with SPDX Apache-2.0 section 4. The NOTICE names Amazon.com, Inc. or its affiliates. The license distinguishes changed-file notices from the attribution notices that pertain to a distributed derivative."
+    },
+    "status": "verified",
+    "status_reason": "ok",
+    "primary_source": true
+  },
+  {
+    "claim_id": "clm_010",
+    "text": "Concord's local messaging guide distinguishes committed storage, harness delivery and evidence of model input. In Claude Code's cross-session guide, a same-machine idle subscription reports an idle session or an exit.",
+    "source_ids": [
+      "src_2",
+      "src_28"
+    ],
+    "claim_type": "descriptive",
+    "risk": "normal",
+    "status": "verified",
+    "status_reason": "ok",
+    "primary_source": true
+  },
+  {
+    "claim_id": "clm_011",
+    "text": "Codex project agents use a TOML file with developer instructions. Claude Code project agents use Markdown with YAML frontmatter and the prompt in the body.",
+    "source_ids": [
+      "src_14",
+      "src_15"
+    ],
+    "claim_type": "descriptive",
+    "risk": "normal",
+    "status": "verified",
+    "status_reason": "ok",
+    "primary_source": true
+  }
+]

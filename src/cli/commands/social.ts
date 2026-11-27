@@ -4,6 +4,7 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 import type { BoardClient } from '../../client/client.ts'
 import { clientError } from '../../client/errors.ts'
+import { readThreadHandoff } from '../../client/handoff.ts'
 import { insightViews, isInsightView } from '../../client/insight-views.ts'
 import type { Env } from '../../client/resolve.ts'
 import type { ChannelKind, GroupKind, NotificationPriority, NotificationReason, PinScope, PresenceStatus } from '../../core/public.ts'
@@ -34,6 +35,7 @@ import {
   renderSearchHits,
   renderTasksPage,
   renderThread,
+  renderThreadHandoff,
   renderThreadsPage,
   type Formatter,
 } from '../output.ts'
@@ -237,6 +239,8 @@ export async function cmdReply(ctx: CommandEnv, args: readonly string[]): Promis
 
 export async function cmdRead(ctx: CommandEnv, args: readonly string[]): Promise<number> {
   const parsed = parseCommandArgs(args, {
+    handoff: { kind: 'boolean' },
+    markdown: { kind: 'boolean', aliases: ['md'] },
     limit: { kind: 'string', short: 'n' },
     after: { kind: 'string' },
     before: { kind: 'string' },
@@ -257,6 +261,24 @@ export async function cmdRead(ctx: CommandEnv, args: readonly string[]): Promise
   const after = getStringFlag(parsed.flags, 'after')
   const before = getStringFlag(parsed.flags, 'before')
   const flat = getBoolFlag(parsed.flags, 'flat') === true
+  const markdown = getBoolFlag(parsed.flags, 'markdown') === true
+
+  if (getBoolFlag(parsed.flags, 'handoff')) {
+    if (parsed.positionals.length !== 1 || !target || !looksLikeMessageRef(target)) {
+      throw clientError('invalid_request', '--handoff requires one message or thread ID')
+    }
+    if (Object.keys(parsed.flags).some(key => !['handoff', 'markdown', 'limit', 'after'].includes(key))) {
+      throw clientError('invalid_request', '--handoff accepts --limit, --after, and --markdown for the thread reply window')
+    }
+    const report = await readThreadHandoff(ctx.client, target, {
+      limit, after, redact: markdown ? ctx.fmt.secrets : undefined,
+    }, { signal: ctx.io.signal })
+    renderThreadHandoff(ctx.fmt, report, markdown)
+    return EXIT_OK
+  }
+  if (markdown) {
+    throw clientError('invalid_request', '--markdown requires --handoff')
+  }
 
   if (target !== undefined && looksLikeMessageRef(target)) {
     const thread = await ctx.client.thread(target, {
