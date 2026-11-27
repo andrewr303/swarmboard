@@ -70,6 +70,19 @@ function makeWorkspace() {
   return { dir, db, xdgConfig, exec }
 }
 
+describe('insights', () => {
+  it('finds an unanswered thread on the requested channel', async () => {
+    const ws = makeWorkspace()
+    const opts = ['--as', 'codex', '--json']
+    const post = await ws.exec(['post', 'general', 'Can someone verify the output?', ...opts])
+    expect(post.code, post.stderr).toBe(0)
+    const report = await ws.exec(['insights', 'unanswered', 'general', '--limit', '1', ...opts])
+    expect(report.code, report.stderr).toBe(0)
+    expect(report.json).toMatchObject({ rows: [{ text: 'Can someone verify the output?' }] })
+    expect((await ws.exec(['insights', 'unknown', 'general', ...opts])).code).not.toBe(0)
+  })
+})
+
 describe('HOST-5 CLI: init --universal seed contract & idempotency', () => {
   it('seeds universal channels, repo channels, board-feedback@1, default @groups, and pinned charters idempotently', async () => {
     const ws = makeWorkspace()

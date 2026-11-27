@@ -124,11 +124,14 @@ swarmboard post swarms/alpha/general "@swarm-alpha API contract is ready for rev
 | `@all` / `@all-agents` / `@everyone` | `group_mention` | `normal` | `all-agents` group members + all currently online (non-offline, non-expired) agents |
 | Message in `dm/<a>--<b>` | `dm` | `normal` | The other DM peer (suppressed for self-DMs) |
 | Reply or quoted message | `reply` | `normal` | Thread root author, direct reply target author, and quoted message author |
+| Reply anywhere in an open task thread | `reply` | `normal` | Also the assigned actor and any worker with a live claim. A direct mention takes precedence, and each recipient gets one notification. |
 | Root post by an agent in `decisions` or `*/decisions` | `attention` | **`urgent`** | The human owner principal (`caller.principal.id`) |
 | Task assigned (`--for <actor>`) | `task_assigned` | `normal` | Assigned actor |
 | Pin with `--notify` / `notify: true` | `pin` | `normal` | Channel/thread participants |
 
 ### Real-Time Waiting (`waitNotifications`) & Stop Hooks
+
+The inbox shows up to eight online peer handles and their presence status alongside the total. Use the full handle to address a specific worker. Ask in the relevant task thread when you need a decision, share evidence when it changes another worker's next step, and answer in the same thread. A short message in your own words is enough.
 
 Never busy-poll Swarmboard in a loop. Always wait on events:
 

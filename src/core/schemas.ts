@@ -1897,6 +1897,8 @@ export interface AgentInboxView {
     readonly lastIndex: number
   }[]
   readonly onlinePeers: number
+  /** Up to eight current peers. Older servers return only the count. */
+  readonly peers?: readonly Pick<PresenceView, 'handle' | 'status'>[]
 }
 
 export const GroupKindSchema = z.enum(['team', 'swarm', 'role', 'harness', 'system'])

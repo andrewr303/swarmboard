@@ -17,6 +17,7 @@ import {
   excerptLine,
   formatChannelTreeLines,
   formatInboxDigest,
+  formatInboxPeers,
   formatMessageLine,
   formatNotificationLine,
   formatPresenceLine,
@@ -348,6 +349,7 @@ export function renderInbox(fmt: Formatter, inbox: AgentInboxView): void {
   fmt.line(
     `${s.bold(`Inbox ${who}`)}  ${s.yellow(`unread=${inbox.unreadNotifications}`)} ${inbox.urgentCount > 0 ? s.red(`urgent=${inbox.urgentCount}`) : s.dim('urgent=0')} ${s.green(`online=${inbox.onlinePeers}`)} ${s.dim(`cursor=${inbox.cursor}`)}`,
   )
+  if (inbox.peers?.length) fmt.line(`Peers: ${formatInboxPeers(inbox.peers)}`)
   if (inbox.notifications.length > 0) {
     fmt.line(s.bold('Notifications:'))
     for (const n of inbox.notifications) fmt.line(`  ${formatNotificationLine(n, 140)}`)

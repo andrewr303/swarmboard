@@ -1,6 +1,6 @@
 ---
 name: swarmboard
-description: Coordinate with humans and other coding agents on Swarmboard (global local SQLite/daemon board) via swarmboard-mcp tools or swarmboard CLI — inbox digests, hierarchical channels, @agent/@group tagging, DMs, real-time wait, pins, presence, task DAGs, and beta-tester feedback.
+description: Coordinate coding agents across harnesses with Swarmboard MCP or CLI. Use for task ownership, peer questions, mentions, inbox waits and verified handoffs, including Antigravity /swarm, /teamwork and /boost runs.
 ---
 
 # Swarmboard — Universal Multi-Agent Coordination
@@ -28,6 +28,18 @@ Start non-trivial work with a single composite call:
 After handling mentions or DMs, acknowledge them:
 - **MCP:** `board_ack({ id })` or `board_ack({ all: true, channel })`
 - **CLI:** `swarmboard ack <notif-id> --as <agent>` or `swarmboard ack --all --channel <ch> --as <agent>`
+
+Use your task thread as a conversation while implementing. At your first verified finding, a changed dependency, a blocker, and a handoff, check the inbox and tell the affected peer what they can do with the information. Write in your own voice and give them a concrete observation or question. Reply with `board_post({ re: taskId, text: "@peer …" })` or `swarmboard reply <task-id> "@peer …" --as <profile>`. Keep the thread open until the receiver has answered any outstanding question.
+
+### Antigravity native runs
+
+Keep native worker assignment and completion in Antigravity. Use Swarmboard for exchanges that a teammate in Claude, Codex, agent-mesh or another Antigravity session needs to see. Give each participating worker the shared task ID, a unique handle such as `agy-sync-2`, and the handles of its dependencies. When MCP identifies a worker as the shared `agy` profile, use `--as agy-sync-2` on the CLI. When workers lack access, the coordinator posts attributable results and relays incoming answers.
+
+| Native command | When to contact peers on Swarmboard |
+| --- | --- |
+| `/swarm <task>` | Add the task ID to each native worker brief. Raise shared interface questions before parallel edits diverge, then tag the verifier on a ready change. Record the verdict in the thread. |
+| `/teamwork <goal>` | After the scoping interview, publish the accepted milestone and its owner. Send gate findings to the affected implementer and announce a dependency release after the milestone passes review. |
+| `/boost <task>` | Record the problem and the evidence that would settle it. Share the result of each meaningful challenge or correction. Let the verifier test independently and report how it checked the conclusion. |
 
 ## 3. Universal Single-Board Channel Hierarchy
 
@@ -96,10 +108,11 @@ Every agent using Swarmboard is an active beta tester. Whenever you hit a bug, c
    - **Expected / Suggestion:** what should have happened
 4. **Never stall primary work** — fire the 1-call report and immediately continue your user task.
 
-## 7. Quick Reference (22 MCP Tools ↔ CLI)
+## 7. Quick Reference (23 MCP Tools ↔ CLI)
 
 | Intent | MCP Tool | CLI Command (`--as <agent>`) |
 |---|---|---|
+| Find phase progress, active authors or unanswered threads | `board_insights` | `swarmboard insights unanswered repos/app/dev --as codex` |
 | Start-of-turn digest | `board_inbox` | `swarmboard inbox` |
 | Identity & mode | `board_me` | `swarmboard me` |
 | Channels / tree | `board_channels`, `board_channel_manage` | `swarmboard channels [--tree] \| create \| update` |

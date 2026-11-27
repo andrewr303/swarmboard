@@ -1,5 +1,5 @@
-// Exact 22-tool MCP surface for swarmboard-mcp (Swarmboard v2 launch design §3.3).
-// Thin module: imports ONLY ../client/errors.ts, ../client/format.ts, and sibling ./ files at runtime.
+// Exact 23-tool MCP surface for swarmboard-mcp (Swarmboard v2 launch design §3.3).
+// Runtime operations use the client API. SQL reporting is loaded only when requested.
 // Zero direct imports of core or host modules.
 import type { BoardClient, TaskInBatch } from '../client/client.ts'
 import { clientError, isBoardError } from '../client/errors.ts'
@@ -48,7 +48,7 @@ export interface ToolExecutionContext {
   readonly waitCapS?: number
 }
 
-// ---- Exact 22-tool definitions (§3.3)
+// ---- Exact 23-tool definitions (§3.3)
 
 const VERBOSE_PROPS = {
   compact: { type: 'boolean', description: 'Return compact output (default true).' },
@@ -59,7 +59,7 @@ export const MCP_TOOLS: readonly McpToolDefinition[] = Object.freeze([
   {
     name: 'board_inbox',
     description:
-      'Start-of-turn 1-call digest: unread notifications, assigned & ready tasks, unread DMs/channels, online peers, and head cursor.',
+      'Check at start, dependency changes, and handoff for unread notifications, assigned & ready tasks, unread DMs/channels, reachable peer handles, and head cursor.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -569,6 +569,22 @@ export const MCP_TOOLS: readonly McpToolDefinition[] = Object.freeze([
       additionalProperties: false,
     },
   },
+  {
+    name: 'board_insights',
+    description: 'Read a channel report of task progress by phase, posting activity by actor, or threads awaiting replies. Check coverage for partial results.',
+    inputSchema: {
+      type: 'object',
+      required: ['view', 'channel'],
+      properties: {
+        view: { type: 'string', enum: ['progress', 'activity', 'unanswered'] },
+        channel: { type: 'string', minLength: 1 },
+        run: { type: 'string', description: 'Filter by the run label of the root task or thread.' },
+        limit: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
+      },
+      additionalProperties: false,
+    },
+    annotations: { readOnlyHint: true, idempotentHint: true },
+  },
 ])
 
 export const MCP_TOOL_NAMES: ReadonlySet<string> = new Set(MCP_TOOLS.map((t) => t.name))
@@ -721,7 +737,7 @@ function formatClaimInfo(
   }
 }
 
-// ---- Dispatcher for all 22 tools
+// ---- Dispatcher for all 23 tools
 
 export async function callMcpTool(name: string, rawArgs: unknown, ctx: ToolExecutionContext): Promise<unknown> {
   const args: Args = rawArgs === undefined || rawArgs === null ? {} : isPlainRecord(rawArgs) ? rawArgs : (() => {
@@ -734,6 +750,19 @@ export async function callMcpTool(name: string, rawArgs: unknown, ctx: ToolExecu
   const callOpts = signal !== undefined ? { signal } : undefined
 
   switch (name) {
+    case 'board_insights': {
+      const channel = reqString(args, 'channel')
+      const view = reqString(args, 'view')
+      if (view !== 'progress' && view !== 'activity' && view !== 'unanswered') {
+        throw clientError('invalid_request', 'view must be progress, activity or unanswered')
+      }
+      const run = optString(args, 'run')
+      const limit = optInt(args, 'limit')
+      const { getBoardInsights } = await import('../client/insights.ts')
+      return getBoardInsights(client, {
+        channel, view, ...(run !== undefined ? { run } : {}), ...(limit !== undefined ? { limit } : {}),
+      }, callOpts)
+    }
     case 'board_inbox': {
       const notificationsLimit = optInt(args, 'notificationsLimit')
       const tasksLimit = optInt(args, 'tasksLimit')

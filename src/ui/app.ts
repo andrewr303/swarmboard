@@ -41,6 +41,7 @@ export function mountCommandCenter(root: HTMLElement): () => void {
   let refreshTimer: ReturnType<typeof setTimeout> | null = null
   let presenceTimer: ReturnType<typeof setInterval> | null = null
   let disposed = false
+  let chooseLandingChannel = true
 
   document.documentElement.setAttribute('data-theme', state.theme)
 
@@ -152,6 +153,7 @@ export function mountCommandCenter(root: HTMLElement): () => void {
           : Promise.resolve({ messages: [], cursor: '0' }),
         api.listPins({ channel: ws.channel, includeGlobal: true, limit: 50 }).catch(() => []),
       ])
+      if (state.workspace !== ws) return
       state.channelThreads = threadsRes.threads
       state.channelMessages = msgsRes.messages
       state.channelPins = pinsRes
@@ -160,6 +162,7 @@ export function mountCommandCenter(root: HTMLElement): () => void {
         api.getThread(ws.threadId, 500),
         api.listPins({ channel: ws.channel, includeGlobal: true, limit: 50 }).catch(() => []),
       ])
+      if (state.workspace !== ws) return
       state.activeThread = tv
       state.channelPins = pinsRes
     }
@@ -182,6 +185,11 @@ export function mountCommandCenter(root: HTMLElement): () => void {
 
       state.channelTree = tree.tree
       state.flatChannels = flattenChannelTree(tree.tree)
+      if (chooseLandingChannel && state.flatChannels.length > 0) {
+        chooseLandingChannel = false
+        const general = state.flatChannels.find(c => c.path === 'general' && !c.archived && c.kind === 'chat')
+        if (general) state.workspace = { kind: 'channel', channel: general.path, mode: 'chat' }
+      }
       state.inbox = inbox
       state.notifications = notifs.notifications
       state.unreadNotificationCount = notifs.unread
@@ -246,12 +254,15 @@ export function mountCommandCenter(root: HTMLElement): () => void {
     },
 
     navigate(ws: ActiveWorkspace) {
+      chooseLandingChannel = false
+      state.channelMessages = []
+      state.channelThreads = []
+      state.activeThread = null
       state.workspace = ws
       state.mobileSidebarOpen = false
       state.editingMessageId = null
       state.reactPickerMessageId = null
       if (ws.kind !== 'thread') {
-        state.activeThread = null
         state.threadFilter = ''
       }
       render()
@@ -381,7 +392,7 @@ export function mountCommandCenter(root: HTMLElement): () => void {
       render()
     },
 
-    setThreadSort(sort: 'asc' | 'desc') {
+    setThreadSort(sort: 'asc' | 'desc' | 'reactions') {
       state.threadSort = sort
       render()
     },
@@ -424,7 +435,8 @@ export function mountCommandCenter(root: HTMLElement): () => void {
       try {
         if (ws.kind === 'thread') {
           await api.postMessage({
-            re: ws.threadId,
+            re: state.composerQuote && state.composerQuote.thread === state.activeThread?.message.thread
+              ? state.composerQuote.id : ws.threadId,
             text,
             ...(quoteMessageId ? { quoteMessageId } : {}),
           })
@@ -662,6 +674,10 @@ export function mountCommandCenter(root: HTMLElement): () => void {
       state.taskFilter = filter
       render()
     },
+    setTaskProgressRun(run) {
+      state.taskProgressRun = run
+      render()
+    },
 
     async createTask(input) {
       try {
@@ -832,6 +848,7 @@ export function mountCommandCenter(root: HTMLElement): () => void {
   root.appendChild(toastRoot)
 
   let lastRenderedModal: ModalState = null
+  let lastRenderedWorkspace: ActiveWorkspace | null = null
 
   const render = (): void => {
     if (disposed) return
@@ -845,6 +862,7 @@ export function mountCommandCenter(root: HTMLElement): () => void {
     const scrollSelectors = ['.cb-sidebar-scroll', '.cb-forum-scroll', '.cb-posts-stream', '.cb-drawer-body']
     const savedScrolls = new Map<string, { top: number; atBottom: boolean }>()
     for (const sel of scrollSelectors) {
+      if (sel === '.cb-posts-stream' && lastRenderedWorkspace !== state.workspace) continue
       const node = shellRoot.querySelector(sel)
       if (node) {
         const atBottom = node.scrollHeight - node.scrollTop - node.clientHeight < 24
@@ -854,7 +872,7 @@ export function mountCommandCenter(root: HTMLElement): () => void {
 
     clearEl(shellRoot)
     const shell = el('div', {
-      className: `cb-shell${state.drawerOpen ? ' has-drawer' : ''}`,
+      className: `cb-shell${state.drawerOpen ? ' has-drawer' : ''}${state.mobileSidebarOpen ? ' nav-open' : ''}`,
     })
     shell.appendChild(renderSpaceRail(state, actions))
     shell.appendChild(renderSidebar(state, actions))
@@ -876,6 +894,12 @@ export function mountCommandCenter(root: HTMLElement): () => void {
       shellRoot.appendChild(scrim)
     }
 
+    // Open a conversation at its newest message. A thread opens at its root.
+    if (state.workspace.kind === 'channel' && !savedScrolls.has('.cb-posts-stream')) {
+      const streamEl = shellRoot.querySelector('.cb-posts-stream')
+      if (streamEl) streamEl.scrollTop = streamEl.scrollHeight
+    }
+    lastRenderedWorkspace = state.workspace
     // Restore pane scroll offsets
     for (const [sel, saved] of savedScrolls) {
       const node = shellRoot.querySelector(sel)

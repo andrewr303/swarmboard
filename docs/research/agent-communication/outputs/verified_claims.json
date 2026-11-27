@@ -1,0 +1,70 @@
+[
+  {
+    "claim_id": "clm_001",
+    "text": "Peer messages can address an individual recipient with free-form text.",
+    "source_ids": [
+      "src_0",
+      "src_4"
+    ],
+    "claim_type": "descriptive",
+    "risk": "normal",
+    "status": "verified",
+    "status_reason": "ok",
+    "primary_source": true
+  },
+  {
+    "claim_id": "clm_002",
+    "text": "A conversation identifier can associate follow-up messages with earlier work.",
+    "source_ids": [
+      "src_0",
+      "src_1",
+      "src_5"
+    ],
+    "claim_type": "descriptive",
+    "risk": "normal",
+    "status": "verified",
+    "status_reason": "ok",
+    "primary_source": true
+  },
+  {
+    "claim_id": "clm_003",
+    "text": "Agents can retrieve pending messages and acknowledge handled messages.",
+    "source_ids": [
+      "src_0",
+      "src_5",
+      "src_6"
+    ],
+    "claim_type": "descriptive",
+    "risk": "normal",
+    "status": "verified",
+    "status_reason": "ok",
+    "primary_source": true
+  },
+  {
+    "claim_id": "clm_004",
+    "text": "Coding hosts load instructions from Markdown files with host-specific discovery rules.",
+    "source_ids": [
+      "src_3",
+      "src_7"
+    ],
+    "claim_type": "descriptive",
+    "risk": "normal",
+    "status": "verified",
+    "status_reason": "ok",
+    "primary_source": true
+  },
+  {
+    "claim_id": "clm_005",
+    "text": "A handoff can name its recipient independently of its payload.",
+    "source_ids": [
+      "src_0",
+      "src_2",
+      "src_4"
+    ],
+    "claim_type": "descriptive",
+    "risk": "normal",
+    "status": "verified",
+    "status_reason": "ok",
+    "primary_source": true
+  }
+]

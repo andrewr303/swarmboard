@@ -146,7 +146,7 @@ function parseToolText<T = Record<string, unknown>>(resp: JsonRpcResponse): { re
 }
 
 describe('HOST-6 live stdio E2E (swarmboard-mcp.ts, V2-20)', () => {
-  it('runs NDJSON handshake, 22 tools, claim cache, cross-process @group board_wait wake, board_feedback, and active->offline EOF lifecycle', async () => {
+  it('runs NDJSON handshake, 23 tools, claim cache, cross-process @group board_wait wake, board_feedback, and active->offline EOF lifecycle', async () => {
     const dir = makeTempDir()
     const dbPath = join(dir, 'board.db')
     const xdgConfig = join(dir, 'xdg-config')
@@ -176,7 +176,7 @@ describe('HOST-6 live stdio E2E (swarmboard-mcp.ts, V2-20)', () => {
 
     mcp.send({ jsonrpc: '2.0', id: 2, method: 'tools/list' })
     const listResp = (await mcp.waitForId(2)) as JsonRpcSuccess
-    expect((listResp.result as { tools: unknown[] }).tools).toHaveLength(22)
+    expect((listResp.result as { tools: unknown[] }).tools).toHaveLength(23)
 
     // 2. Verify auto-presence set 'active' with harness & model from a sibling Mode 1 client
     const codexId = resolveLocalIdentity({ as: 'codex', isTTY: false, env: {} })

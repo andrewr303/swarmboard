@@ -22,7 +22,7 @@ import {
 import { importGraph, transportFiles } from '../core/host0/import-graph.ts'
 
 const ROOT = resolve(import.meta.dirname, '..', '..')
-const EXPECTED_22_TOOLS = [
+const EXPECTED_TOOLS = [
   'board_inbox',
   'board_me',
   'board_channels',
@@ -45,6 +45,7 @@ const EXPECTED_22_TOOLS = [
   'board_task_claim',
   'board_task_update',
   'board_feedback',
+  'board_insights',
 ] as const
 
 const tmpDirs: string[] = []
@@ -169,8 +170,8 @@ async function rpcCall<T = Record<string, unknown>>(
   }
 }
 
-describe('HOST-6 MCP Server — protocol, all 22 tools, caps, claim cache, auto-presence', () => {
-  it('negotiates MCP protocol versions, handles ping/notifications, and lists exact 22 tools', async () => {
+describe('HOST-6 MCP Server — protocol, all 23 tools, caps, claim cache, auto-presence', () => {
+  it('negotiates MCP protocol versions, handles ping/notifications, and lists exact 23 tools', async () => {
     const h = await createHarness()
     try {
       const init2025 = (await h.server.handleMessage({
@@ -218,15 +219,18 @@ describe('HOST-6 MCP Server — protocol, all 22 tools, caps, claim cache, auto-
         result: {},
       })
 
-      // tools/list returns exact 22 tools from design §3.3
+      // tools/list returns exact 23 tools from design §3.3
       const listResp = (await h.server.handleMessage({
         jsonrpc: '2.0',
         id: 5,
         method: 'tools/list',
       })) as JsonRpcSuccess
       const tools = (listResp.result as { tools: typeof MCP_TOOLS }).tools
-      expect(tools).toHaveLength(22)
-      expect(tools.map((t) => t.name)).toEqual([...EXPECTED_22_TOOLS])
+      expect(tools).toHaveLength(23)
+      expect(tools.find(tool => tool.name === 'board_insights')?.annotations).toMatchObject({
+        readOnlyHint: true, idempotentHint: true,
+      })
+      expect(tools.map((t) => t.name)).toEqual([...EXPECTED_TOOLS])
       for (const tool of tools) {
         expect(tool.description.length).toBeGreaterThan(10)
         expect(tool.inputSchema['type']).toBe('object')
@@ -255,7 +259,7 @@ describe('HOST-6 MCP Server — protocol, all 22 tools, caps, claim cache, auto-
     }
   })
 
-  it('exercises all 22 tools end-to-end: social, channels, pins, groups, DMs, tasks + claim cache, search, feedback', async () => {
+  it('exercises all 23 tools end-to-end: social, channels, pins, groups, DMs, tasks + claim cache, search, feedback', async () => {
     const h = await createHarness({ profile: 'agy', harnessEnv: 'agy', modelEnv: 'gemini-3-pro' })
     const codex = await h.peerClient('codex')
     const claude = await h.peerClient('claude')
@@ -600,7 +604,7 @@ describe('HOST-6 MCP Server — protocol, all 22 tools, caps, claim cache, auto-
         jsonrpc: '2.0',
         id: 50,
         method: 'tools/call',
-        params: { name: 'board_post', arguments: { re: task1.data.task.id, text: 'Milestone: all 22 tools green' } },
+        params: { name: 'board_post', arguments: { re: task1.data.task.id, text: 'Milestone: all 23 tools green' } },
       })
 
       const listedTasks = await rpcCall<{ tasks: Array<{ message: { id: string }; latestReply?: { excerpt: string } }> }>(
@@ -614,11 +618,19 @@ describe('HOST-6 MCP Server — protocol, all 22 tools, caps, claim cache, auto-
       const completed = await rpcCall<{ ok: true; task: { task?: { state: string; result?: string } } }>(
         h.server,
         'board_task_update',
-        { action: 'complete', id: `#${task1.data.task.id}`, result: 'Verified 22/22 tools' },
+        { action: 'complete', id: `#${task1.data.task.id}`, result: 'Verified task handoff' },
       )
       expect(completed.isError).toBe(false)
       expect(completed.data.task.task?.state).toBe('completed')
-      expect(completed.data.task.task?.result).toBe('Verified 22/22 tools')
+      expect(completed.data.task.task?.result).toBe('Verified task handoff')
+
+      const progress = await rpcCall<{ rows: Array<{ completed: number }> }>(h.server, 'board_insights', {
+        view: 'progress', channel: 'repos/app/work',
+      })
+      expect(progress.isError).toBe(false)
+      expect(progress.data.rows.some(row => row.completed > 0)).toBe(true)
+      const invalid = await rpcCall(h.server, 'board_insights', { view: 'progress', channel: 'repos/app/work', limit: 0 })
+      expect(invalid.isError).toBe(true)
 
       // Batch create + claim ready by channel + release + claim by id + block/unblock + fail + reopen + assign + needs + cancel
       const batch = await rpcCall<{ tasks: Array<{ id: string }> }>(h.server, 'board_task_create', {

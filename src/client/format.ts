@@ -231,6 +231,7 @@ export interface CompactAgentInbox {
   readonly unreadNotifications: number
   readonly urgentCount: number
   readonly onlinePeers: number
+  readonly peers?: AgentInboxView['peers']
   readonly notifications?: readonly CompactNotification[]
   readonly tasks?: {
     readonly assigned?: readonly Record<string, unknown>[]
@@ -544,6 +545,7 @@ export function compactAgentInbox(inbox: AgentInboxView): CompactAgentInbox {
     unreadNotifications: inbox.unreadNotifications,
     urgentCount: inbox.urgentCount,
     onlinePeers: inbox.onlinePeers,
+    ...(inbox.peers?.length ? { peers: inbox.peers } : {}),
     ...(inbox.notifications.length > 0 ? { notifications: inbox.notifications.map(compactNotification) } : {}),
     ...(hasTasks
       ? {
@@ -722,11 +724,16 @@ export function formatChannelTreeLines(tree: readonly ChannelTreeNode[], indent 
   return lines
 }
 
+export function formatInboxPeers(peers: NonNullable<AgentInboxView['peers']>): string {
+  return peers.map(peer => `@${peer.handle} (${peer.status})`).join(', ')
+}
+
 /** Ultra-compact multi-line digest for `agentInbox` (ideal for start-of-turn CLI/hook output). */
 export function formatInboxDigest(inbox: AgentInboxView): string {
   const lines: string[] = [
     `inbox ${actorTag(inbox.actor, inbox.profile)} cursor=${inbox.cursor} unread=${inbox.unreadNotifications} urgent=${inbox.urgentCount} online=${inbox.onlinePeers}`,
   ]
+  if (inbox.peers?.length) lines.push(`peers: ${formatInboxPeers(inbox.peers)}`)
   if (inbox.notifications.length > 0) {
     lines.push('notifications:')
     for (const n of inbox.notifications) lines.push(`  ${formatNotificationLine(n, 120)}`)

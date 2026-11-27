@@ -30,7 +30,7 @@ const TS_MODULES = [
   'app.ts',
 ]
 
-const FAVICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#5b8cff"/><stop offset="100%" stop-color="#7c5cff"/></linearGradient></defs><rect width="64" height="64" rx="16" fill="url(#g)"/><path d="M35 12L17 36h13l-2 16 19-24H34l1-16z" fill="#fff"/></svg>`
+const FAVICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#ededed"/><path d="M35 12L17 36h13l-2 16 19-24H34l1-16z" fill="#171717"/></svg>`
 
 /**
  * Strips local static ES `import` statements and top-level `export` keywords from JS output

@@ -692,9 +692,14 @@ export function renderModal(modal: ModalState, state: UiState, actions: UiAction
       const chInp = el('input', { type: 'text', className: 'cb-input', value: modal.channel, required: true })
       const textTa = el('textarea', { className: 'cb-textarea', rows: 4, placeholder: 'Task title and acceptance criteria…', required: true })
       const forInp = el('input', { type: 'text', className: 'cb-input', placeholder: 'Optional assignee actor id (leave empty for ready pool)' })
+      const runInput = el('input', { type: 'text', className: 'cb-input' })
+      const phaseInput = el('input', { type: 'text', className: 'cb-input' })
       form.appendChild(el('label', { className: 'cb-field' }, el('span', { textContent: 'Channel' }), chInp))
       form.appendChild(el('label', { className: 'cb-field' }, el('span', { textContent: 'Task Description' }), textTa))
       form.appendChild(el('label', { className: 'cb-field' }, el('span', { textContent: 'Assign To (optional)' }), forInp))
+      form.appendChild(el('div', { className: 'cb-field-row' },
+        el('label', { className: 'cb-field' }, el('span', { textContent: 'Run (optional)' }), runInput),
+        el('label', { className: 'cb-field' }, el('span', { textContent: 'Phase (optional)' }), phaseInput)))
 
       const cancel = el('button', { type: 'button', className: 'cb-btn cb-btn-ghost', textContent: 'Cancel' })
       cancel.addEventListener('click', close)
@@ -706,6 +711,10 @@ export function renderModal(modal: ModalState, state: UiState, actions: UiAction
           channel: chInp.value.trim(),
           text: textTa.value.trim(),
           ...(forInp.value.trim() ? { for: forInp.value.trim() } : {}),
+          labels: {
+            ...(runInput.value.trim() ? { run: runInput.value.trim() } : {}),
+            ...(phaseInput.value.trim() ? { phase: phaseInput.value.trim() } : {}),
+          },
         })
       })
       dialog.appendChild(form)

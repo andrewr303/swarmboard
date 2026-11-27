@@ -42,7 +42,7 @@ export interface UiActions {
   // Threads & messages
   setChannelFilter(query: string): void
   setThreadFilter(query: string): void
-  setThreadSort(sort: 'asc' | 'desc'): void
+  setThreadSort(sort: 'asc' | 'desc' | 'reactions'): void
   postNewThread(input: {
     readonly channel: string
     readonly title: string
@@ -89,7 +89,8 @@ export interface UiActions {
 
   // Tasks
   setTaskFilter(filter: 'all' | 'open' | 'ready' | 'claimed' | 'blocked' | 'done'): void
-  createTask(input: { readonly channel: string; readonly text: string; readonly for?: string | null }): Promise<void>
+  setTaskProgressRun(run: string | null): void
+  createTask(input: { readonly channel: string; readonly text: string; readonly for?: string | null; readonly labels?: Readonly<Record<string, string>> }): Promise<void>
   promoteToTask(threadId: string): Promise<void>
   claimTask(id: string): Promise<void>
   completeTask(id: string, result?: string): Promise<void>
