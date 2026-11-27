@@ -71,6 +71,19 @@ function makeWorkspace() {
 }
 
 describe('insights', () => {
+  it('reads blockers from the selected channel', async () => {
+    const ws = makeWorkspace()
+    const opts = ['--as', 'codex', '--json']
+    const created = await ws.exec(['tasks', 'create', 'general', 'Publish build', ...opts])
+    expect(created.code, created.stderr).toBe(0)
+    const { task } = created.json as { task: { id: string } }
+    const hold = await ws.exec(['tasks', 'block', task.id, 'Awaiting sign-off', ...opts])
+    expect(hold.code, hold.stderr).toBe(0)
+    const report = await ws.exec(['insights', 'blockers', 'general', ...opts])
+    expect(report.code, report.stderr).toBe(0)
+    expect(report.json).toMatchObject({ rows: [{ id: task.id, kind: null, reason: 'Awaiting sign-off', waitingDependents: 0 }] })
+  })
+
   it('finds an unanswered thread on the requested channel', async () => {
     const ws = makeWorkspace()
     const opts = ['--as', 'codex', '--json']

@@ -3,6 +3,7 @@
 // Zero direct imports of core or host modules.
 import type { BoardClient, TaskInBatch } from '../client/client.ts'
 import { clientError, isBoardError } from '../client/errors.ts'
+import { insightViews, isInsightView } from '../client/insight-views.ts'
 import {
   compactAgentInbox,
   compactChannel,
@@ -571,12 +572,12 @@ export const MCP_TOOLS: readonly McpToolDefinition[] = Object.freeze([
   },
   {
     name: 'board_insights',
-    description: 'Read a channel report of task progress by phase, posting activity by actor, or threads awaiting replies. Check coverage for partial results.',
+    description: 'Report task progress, blockers ranked by direct waiting dependents, posting activity, or unanswered threads in a channel. Check coverage for partial results.',
     inputSchema: {
       type: 'object',
       required: ['view', 'channel'],
       properties: {
-        view: { type: 'string', enum: ['progress', 'activity', 'unanswered'] },
+        view: { type: 'string', enum: insightViews },
         channel: { type: 'string', minLength: 1 },
         run: { type: 'string', description: 'Filter by the run label of the root task or thread.' },
         limit: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
@@ -753,8 +754,8 @@ export async function callMcpTool(name: string, rawArgs: unknown, ctx: ToolExecu
     case 'board_insights': {
       const channel = reqString(args, 'channel')
       const view = reqString(args, 'view')
-      if (view !== 'progress' && view !== 'activity' && view !== 'unanswered') {
-        throw clientError('invalid_request', 'view must be progress, activity or unanswered')
+      if (!isInsightView(view)) {
+        throw clientError('invalid_request', `view must be one of ${insightViews.join(', ')}`)
       }
       const run = optString(args, 'run')
       const limit = optInt(args, 'limit')

@@ -1,5 +1,6 @@
 // Concise top-level and per-command help text for `swarmboard`.
 // Note: never mention scoped package names here (always use bare `swarmboard`).
+import { insightViews } from '../client/insight-views.ts'
 
 export const MAIN_HELP = `swarmboard — unified local & remote coordination board for humans and coding agents
 
@@ -32,7 +33,7 @@ Setup & Ops:
   token <issue|list|revoke>                         Manage hashed bearer auth tokens
 
 Messaging & Social:
-  insights <view> <channel> [--run ID] [--limit N]   Report progress, activity or unanswered threads
+  insights <view> <channel> [--run ID] [--limit N]   Report progress, blockers, activity or unanswered threads
   inbox [--limit N] [--urgent]                      1-call digest: unread notifications, tasks, DMs, channels
   mentions [--all] [--urgent] [--reason <r>]        List unread or all notifications
   ack <notif-id> | --all [--channel <ch>]           Acknowledge notification(s) and mark channels read
@@ -92,7 +93,7 @@ List threads ordered Announcements -> Sticky -> Active (default forum order).`,
   react: `Usage: swarmboard react <id> <emoji> [--remove]`,
   label: `Usage: swarmboard label <id> [k=v]... [--set k=v]... [--unset k]... [--if k=v]... [--if-unset k]...`,
   flag: `Usage: swarmboard flag <id> <reason> [--feedback] [--resolve]`,
-  insights: `Usage: swarmboard insights <progress|activity|unanswered> <channel> [--run ID] [--limit N]`,
+  insights: `Usage: swarmboard insights <${insightViews.join('|')}> <channel> [--run ID] [--limit N]`,
   inbox: `Usage: swarmboard inbox [-n|--limit N] [--tasks-limit N] [--urgent] [--channel <ch>] [--no-ready]`,
   mentions: `Usage: swarmboard mentions [--all] [--urgent] [--reason <r>] [--channel <ch>] [--after <cur>] [-n|--limit N] [--count]`,
   ack: `Usage: swarmboard ack <notif-id> [--read-only]

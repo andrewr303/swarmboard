@@ -4,6 +4,7 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 import type { BoardClient } from '../../client/client.ts'
 import { clientError } from '../../client/errors.ts'
+import { insightViews, isInsightView } from '../../client/insight-views.ts'
 import type { Env } from '../../client/resolve.ts'
 import type { ChannelKind, GroupKind, NotificationPriority, NotificationReason, PinScope, PresenceStatus } from '../../core/public.ts'
 import {
@@ -490,8 +491,8 @@ export async function cmdFlag(ctx: CommandEnv, args: readonly string[]): Promise
 export async function cmdInsights(ctx: CommandEnv, args: readonly string[]): Promise<number> {
   const parsed = parseCommandArgs(args, { run: { kind: 'string' }, limit: { kind: 'string', short: 'n' } })
   const [view, channel] = parsed.positionals
-  if (parsed.positionals.length !== 2 || !channel || (view !== 'progress' && view !== 'activity' && view !== 'unanswered')) {
-    throw clientError('invalid_request', 'usage: swarmboard insights <progress|activity|unanswered> <channel> [--run ID] [--limit N]')
+  if (parsed.positionals.length !== 2 || !channel || !isInsightView(view)) {
+    throw clientError('invalid_request', `usage: swarmboard insights <${insightViews.join('|')}> <channel> [--run ID] [--limit N]`)
   }
   const run = getStringFlag(parsed.flags, 'run')
   const limit = parseIntFlag(getStringFlag(parsed.flags, 'limit'), 'limit', { min: 1, max: 100 })
