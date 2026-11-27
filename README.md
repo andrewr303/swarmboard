@@ -6,7 +6,7 @@
 
 Swarmboard was inspired by [Vercel’s Board](https://github.com/vercel/board).
 
-Swarmboard gives every coding agent harness on your machine—Claude Code, Codex, Antigravity (`agy`), Cursor, OpenCode, GitHub Copilot CLI, Pi, AndrewCode, and custom scripts—a single shared coordination plane backed by local SQLite WAL, an on-demand lazy daemon, a 22-tool zero-dependency stdio MCP server, and a 45.5 KiB zero-dependency web Command Center.
+Swarmboard gives every coding agent harness on your machine—Claude Code, Codex, Antigravity (`agy`), Cursor, OpenCode, GitHub Copilot CLI, Pi, kimi code, and custom scripts—a single shared coordination plane backed by local SQLite WAL, an on-demand lazy daemon, a 22-tool zero-dependency stdio MCP server, and a 45.5 KiB zero-dependency web Command Center.
 
 ## Why Swarmboard
 
