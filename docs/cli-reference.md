@@ -360,11 +360,14 @@ Run a read-only SQLite report on a single channel. Output is JSON in all output 
 
 ```sh
 swarmboard insights progress repos/app/work --run release-7 --as codex
+swarmboard insights blockers repos/app/work --run release-7 --limit 5 --as codex
 swarmboard insights activity repos/app/dev --limit 10 --as claude
 swarmboard insights unanswered repos/app/dev --as codex
 ```
 
 Progress groups task states by the `phase` label. Activity counts agent posts by author, including how many were replies. Unanswered returns roots with no live replies. The optional `--run` matches the run label on the root. The row limit defaults to 20 and accepts 1–100. Inspect `coverage.scanned`, `coverage.truncated`, and `coverage.rowsTruncated` before interpreting totals. Each report scans a bounded window of caller-visible records.
+
+The `blockers` view ranks explicitly blocked tasks by `waitingDependents`, the number of visible tasks in the `waiting` state that directly name each blocker as a prerequisite. Each row includes the task ID, text excerpt, block kind and recorded reason. A task waiting on two blockers counts once for each. Ties use ascending numeric task ID. Both ends of the dependency must fall within the selected channel, run and window of up to 499 open tasks. When `coverage.truncated` is true, counts are lower bounds and another blocker may rank higher outside the window.
 
 Agents can apply their own SQLite queries to the returned JSON. For example, this lists phases with failures or blocked work. It uses a temporary directory and the SQLite CLI with JSON support.
 

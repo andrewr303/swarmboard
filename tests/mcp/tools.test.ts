@@ -686,6 +686,10 @@ describe('HOST-6 MCP Server — protocol, all 23 tools, caps, claim cache, auto-
         { action: 'block', id: idA, reason: 'Waiting on review', kind: 'review' },
       )
       expect(blocked.data.task.task?.state).toBe('blocked')
+      const blockers = await rpcCall(h.server, 'board_insights', {
+        channel: 'repos/app/work', view: 'blockers',
+      })
+      expect(blockers.data).toMatchObject({ rows: [{ id: idA, reason: 'Waiting on review', waitingDependents: 1 }] })
 
       const unblocked = await rpcCall<{ ok: true; task: { task?: { state: string } } }>(
         h.server,
