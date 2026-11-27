@@ -257,6 +257,71 @@ export interface LinkBinResult {
   readonly note?: string
 }
 
+export interface CliSetupRequest {
+  readonly dryRun?: boolean
+  readonly skipInit?: boolean
+  readonly linkBins?: boolean
+  readonly configureShell?: boolean
+  readonly installSkills?: boolean
+  readonly configureMcp?: boolean
+  readonly configureInstructions?: boolean
+  readonly home?: string
+  readonly binDir?: string
+  readonly mcpBin?: string
+}
+
+export interface CliSetupReport {
+  readonly ok: boolean
+  readonly dryRun: boolean
+  readonly home: string
+  readonly packageRoot: string
+  readonly repoRoot: string
+  readonly bins: readonly { readonly name: string; readonly linkPath: string; readonly target: string; readonly status: string }[]
+  readonly binDirOnPath: boolean
+  readonly config: { readonly path: string; readonly globalDbPath: string; readonly status: string } | null
+  readonly zshenv: { readonly path: string; readonly status: string } | null
+  readonly globalBoard: {
+    readonly db: string
+    readonly status: string
+    readonly boardId?: string | null
+    readonly schemaVersion?: number
+    readonly channelsCreated?: number
+    readonly channelsExisting?: number
+    readonly groupsCreated?: number
+    readonly groupsExisting?: number
+    readonly schemaId?: string | null
+    readonly doctorOk?: boolean
+  } | null
+  readonly skills: {
+    readonly canonical: readonly { readonly file: string; readonly status: string }[]
+    readonly symlinks: readonly { readonly harness: string; readonly linkPath: string; readonly target?: string; readonly status: string }[]
+  }
+  readonly mcp: readonly { readonly harness: string; readonly path: string; readonly status: string; readonly verified?: string }[]
+  readonly instructions: readonly { readonly path: string; readonly status: string }[]
+  readonly legacyCleanup: readonly { readonly kind: string; readonly target: string; readonly status: string }[]
+  readonly backups: readonly string[]
+  readonly summaryText?: string
+}
+
+export interface CliUninstallRequest {
+  readonly dryRun?: boolean
+  readonly purgeData?: boolean
+  readonly home?: string
+  readonly binDir?: string
+  readonly appDir?: string
+}
+
+export interface CliUninstallReport {
+  readonly ok: boolean
+  readonly dryRun: boolean
+  readonly purgeData: boolean
+  readonly home: string
+  readonly daemonStopped: boolean
+  readonly removed: readonly { readonly kind: string; readonly target: string; readonly status: string }[]
+  readonly preservedData: readonly string[]
+  readonly summaryText?: string
+}
+
 /**
  * Injected bridge supplied by the binary entrypoint or tests.
  * Keeps `src/cli/**` strictly dependent on `src/client/**` and Node stdlib.
@@ -274,4 +339,6 @@ export interface CliHostBridge {
   tokenList(ctx: CliBridgeContext, req: TokenListRequest): Promise<readonly TokenRecordView[]>
   tokenRevoke(ctx: CliBridgeContext, id: string): Promise<TokenRevokeResult>
   linkBin?(ctx: CliBridgeContext): Promise<LinkBinResult>
+  setup?(ctx: CliBridgeContext, req: CliSetupRequest): Promise<CliSetupReport>
+  uninstall?(ctx: CliBridgeContext, req: CliUninstallRequest): Promise<CliUninstallReport>
 }

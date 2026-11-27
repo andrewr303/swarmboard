@@ -19,6 +19,8 @@ Global Options:
   -V, --version             Print version
 
 Setup & Ops:
+  setup [--dry-run] [--no-mcp] [--no-skills]        One-step setup: config, universal board, skills & MCP
+  uninstall [--dry-run] [--purge-data]              Remove symlinks, MCP entries & skills (keeps DB by default)
   init [--universal] [--repo <slug>] [--link-bin]   Initialize board (and seed universal layout)
   me | whoami                                       Show resolved identity, mode, and capabilities
   doctor                                            Run read-only diagnostics and trust checks
@@ -62,6 +64,15 @@ Run "swarmboard <command> --help" for detailed command options.
 `
 
 export const COMMAND_HELP: Readonly<Record<string, string>> = {
+  setup: `Usage: swarmboard setup [--dry-run] [--skip-init] [--no-link-bin] [--no-shell] [--no-skills] [--no-mcp] [--no-instructions] [--home <dir>] [--bin-dir <dir>] [--mcp-bin <path>]
+Idempotently configure Swarmboard on this machine: symlink binaries into ~/.local/bin, write
+~/.config/swarmboard/config.json (0600), initialize & seed the universal global board, install
+canonical skills + harness symlinks, register MCP configs (with .bak.swarmboard backups and
+pre/post JSON/TOML validation), and append universal agent coordination rules.`,
+  uninstall: `Usage: swarmboard uninstall [--dry-run] [--purge-data] [--home <dir>] [--bin-dir <dir>] [--app-dir <dir>]
+Stop the daemon best-effort and remove Swarmboard symlinks, MCP entries, skills, standalone app
+directory, and marked instruction/shell blocks. Preserves your SQLite board database and config
+by default unless --purge-data is passed.`,
   init: `Usage: swarmboard init [--universal] [--repo <slug>]... [--link-bin]
 Create the board DB/manifest/sidecars. With --universal, idempotently seeds global channels,
 forgiving board-feedback@1 schema, default @groups, and pinned charter posts.`,

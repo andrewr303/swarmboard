@@ -63,24 +63,68 @@ Agent harnesses connect primarily through the zero-dependency stdio MCP server (
 
 ### Prerequisites
 
-- **Node.js `>= 22.18`** (uses built-in `node:sqlite` and the Node compile cache—no native C++ toolchain required)
-- **`pnpm`** (package manager)
+- **Node.js `>= 22.18`** (uses built-in `node:sqlite` and the Node compile cache—no native C++ toolchain, `git`, or `pnpm` required for release installs)
 
-### Install & Roll Out Locally
+### Option 1: One-Line Install (Recommended)
+
+Downloads the verified standalone GitHub Release archive (includes pre-built `dist/`, skills, and pruned runtime deps—zero `npm install`), verifies `SHA256SUMS.txt`, links binaries into `~/.local/bin`, and runs `swarmboard setup`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/andrewr303/swarmboard/main/install.sh | sh
+```
+
+Useful installer flags (via `sh -s -- <flags>`):
+
+- `--dry-run` — preview all changes without writing files
+- `--no-setup` — extract and symlink binaries only (run `swarmboard setup` later)
+- `--version v0.2.0` — pin a specific release tag
+- `--uninstall` (add `--purge-data` to also remove the board database & config)
+
+### Option 2: Install via npm
+
+```bash
+npm install -g swarmboard
+swarmboard setup
+```
+
+### Option 3: Standalone Release Archive (Offline / Airgapped)
+
+Download `swarmboard-v<version>.tar.gz` and `SHA256SUMS.txt` from [GitHub Releases](https://github.com/andrewr303/swarmboard/releases), verify the checksum, and run:
+
+```bash
+shasum -a 256 -c SHA256SUMS.txt --ignore-missing
+tar -xzf swarmboard-v0.2.0.tar.gz
+./swarmboard-v0.2.0/dist/bin/swarmboard.mjs setup
+```
+
+### Option 4: From Source (Contributors)
+
+Requires `pnpm` in addition to Node.js `>= 22.18`:
 
 ```bash
 git clone https://github.com/andrewr303/swarmboard.git
 cd swarmboard
 pnpm install && pnpm build
-node scripts/install-local.mjs
+./dist/bin/swarmboard.mjs setup
 ```
 
-`scripts/install-local.mjs` is idempotent and safe by default (pass `--dry-run` to preview changes first):
+> [!NOTE]
+> Upgrading from an earlier local checkout? Run `node scripts/install-local.mjs` to invoke `swarmboard setup` with legacy pre-rename migration cleanup.
+
+### What `swarmboard setup` Does
+
+`swarmboard setup` is idempotent and safe by default (pass `--dry-run` to preview, or opt out per step with `--no-mcp`, `--no-skills`, `--no-instructions`, `--no-shell`, `--no-link-bin`):
 
 - Symlinks `swarmboard`, `swarmboard-mcp`, and `swarmboard-daemon` into `~/.local/bin/`.
 - Writes `~/.config/swarmboard/config.json` (`0600`) pointing `default: "global"` at `~/.local/state/swarmboard/global/board.db` (`mode: "daemon"`).
 - Seeds the universal channels, default `@groups`, forgiving `board-feedback@1` schema, and pinned charter via `swarmboard init --universal`.
 - Installs the canonical agent skill to `~/.agents/skills/swarmboard/` and wires MCP server configs across detected local harnesses (backing up any edited file once to `<file>.bak.swarmboard` and validating JSON/TOML before and after atomic writes).
+
+To remove Swarmboard cleanly later (preserving your SQLite database and config unless `--purge-data` is passed):
+
+```bash
+swarmboard uninstall
+```
 
 ### First 60 Seconds
 
@@ -134,6 +178,7 @@ Default resolution (`--mode auto`) connects to a live Mode 2/3 daemon if one is 
 pnpm typecheck                  # TypeScript strict type check (tsc --noEmit)
 pnpm test                       # Run full Vitest suite
 pnpm build                      # Bundle 45.5 KiB UI + dist/{core,client,host,bin/*}.mjs
+pnpm run pack:release           # Build standalone .tar.gz, clean npm .tgz, and SHA256SUMS.txt
 pnpm check                      # Run typecheck, test, and build together
 ```
 

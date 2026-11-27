@@ -345,3 +345,77 @@ export async function cmdToken(ctx: OpsCommandEnv, args: readonly string[]): Pro
   }
   return EXIT_OK
 }
+
+export async function cmdSetup(ctx: OpsCommandEnv, args: readonly string[]): Promise<number> {
+  const parsed = parseCommandArgs(args, {
+    'dry-run': { kind: 'boolean' },
+    'skip-init': { kind: 'boolean' },
+    'no-link-bin': { kind: 'boolean' },
+    'no-shell': { kind: 'boolean' },
+    'no-skills': { kind: 'boolean' },
+    'no-mcp': { kind: 'boolean' },
+    'no-instructions': { kind: 'boolean' },
+    home: { kind: 'string' },
+    'bin-dir': { kind: 'string' },
+    'mcp-bin': { kind: 'string' },
+  })
+  if (!ctx.bridge.setup) {
+    throw clientError('not_supported', 'swarmboard setup is not available in this environment')
+  }
+  const home = getStringFlag(parsed.flags, 'home')
+  const binDir = getStringFlag(parsed.flags, 'bin-dir')
+  const mcpBin = getStringFlag(parsed.flags, 'mcp-bin')
+  const report = await ctx.bridge.setup(ctx.bridgeCtx, {
+    dryRun: getBoolFlag(parsed.flags, 'dry-run') === true,
+    skipInit: getBoolFlag(parsed.flags, 'skip-init') === true,
+    linkBins: getBoolFlag(parsed.flags, 'no-link-bin') !== true,
+    configureShell: getBoolFlag(parsed.flags, 'no-shell') !== true,
+    installSkills: getBoolFlag(parsed.flags, 'no-skills') !== true,
+    configureMcp: getBoolFlag(parsed.flags, 'no-mcp') !== true,
+    configureInstructions: getBoolFlag(parsed.flags, 'no-instructions') !== true,
+    ...(home !== undefined ? { home } : {}),
+    ...(binDir !== undefined ? { binDir } : {}),
+    ...(mcpBin !== undefined ? { mcpBin } : {}),
+  })
+  if (ctx.fmt.mode === 'json') {
+    const { summaryText: _summary, ...jsonReport } = report
+    ctx.fmt.json(jsonReport)
+  } else if (report.summaryText) {
+    ctx.io.stdout(report.summaryText)
+  } else {
+    ctx.fmt.line(`Swarmboard setup complete (home=${report.home})`)
+  }
+  return EXIT_OK
+}
+
+export async function cmdUninstall(ctx: OpsCommandEnv, args: readonly string[]): Promise<number> {
+  const parsed = parseCommandArgs(args, {
+    'dry-run': { kind: 'boolean' },
+    'purge-data': { kind: 'boolean' },
+    home: { kind: 'string' },
+    'bin-dir': { kind: 'string' },
+    'app-dir': { kind: 'string' },
+  })
+  if (!ctx.bridge.uninstall) {
+    throw clientError('not_supported', 'swarmboard uninstall is not available in this environment')
+  }
+  const home = getStringFlag(parsed.flags, 'home')
+  const binDir = getStringFlag(parsed.flags, 'bin-dir')
+  const appDir = getStringFlag(parsed.flags, 'app-dir')
+  const report = await ctx.bridge.uninstall(ctx.bridgeCtx, {
+    dryRun: getBoolFlag(parsed.flags, 'dry-run') === true,
+    purgeData: getBoolFlag(parsed.flags, 'purge-data') === true,
+    ...(home !== undefined ? { home } : {}),
+    ...(binDir !== undefined ? { binDir } : {}),
+    ...(appDir !== undefined ? { appDir } : {}),
+  })
+  if (ctx.fmt.mode === 'json') {
+    const { summaryText: _summary, ...jsonReport } = report
+    ctx.fmt.json(jsonReport)
+  } else if (report.summaryText) {
+    ctx.io.stdout(report.summaryText)
+  } else {
+    ctx.fmt.line(`Swarmboard uninstall complete (removed=${report.removed.length})`)
+  }
+  return EXIT_OK
+}

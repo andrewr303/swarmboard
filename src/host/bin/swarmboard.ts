@@ -917,6 +917,32 @@ export function createDefaultHostBridge(): CliHostBridge {
         ...(linked.length === 0 ? { note: 'build dist/bin/*.mjs first before running --link-bin' } : {}),
       }
     },
+
+    async setup(ctx, req) {
+      const { formatSetupReport, runSetup } = await import('../setup.ts')
+      const envHome =
+        process.platform === 'win32'
+          ? (ctx.env['USERPROFILE']?.trim() || ctx.env['HOME']?.trim())
+          : ctx.env['HOME']?.trim()
+      const report = runSetup({
+        ...req,
+        ...(req.home !== undefined ? { home: req.home } : envHome ? { home: envHome } : {}),
+      })
+      return { ...report, summaryText: formatSetupReport(report) }
+    },
+
+    async uninstall(ctx, req) {
+      const { formatUninstallReport, runUninstall } = await import('../setup.ts')
+      const envHome =
+        process.platform === 'win32'
+          ? (ctx.env['USERPROFILE']?.trim() || ctx.env['HOME']?.trim())
+          : ctx.env['HOME']?.trim()
+      const report = runUninstall({
+        ...req,
+        ...(req.home !== undefined ? { home: req.home } : envHome ? { home: envHome } : {}),
+      })
+      return { ...report, summaryText: formatUninstallReport(report) }
+    },
   }
 }
 

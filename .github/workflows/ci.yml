@@ -54,5 +54,25 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Test
-        run: pnpm exec vitest run --maxWorkers=4
+      - name: Test (unit & integration)
+        run: >-
+          pnpm exec vitest run --maxWorkers=2
+          --exclude 'tests/host/wake-bridge.test.ts'
+          --exclude 'tests/client/transport-inproc.test.ts'
+          --exclude 'tests/host/proc/**'
+          --exclude 'tests/core/tasks/proc/**'
+          --exclude 'tests/client/proc/**'
+          --exclude 'tests/conformance/proc/**'
+
+      - name: Test (multi-process & timing-sensitive)
+        run: >-
+          pnpm exec vitest run --fileParallelism=false --maxWorkers=1
+          tests/host/wake-bridge.test.ts
+          tests/client/transport-inproc.test.ts
+          tests/host/proc
+          tests/core/tasks/proc
+          tests/client/proc
+          tests/conformance/proc
+
+      - name: Verify release packaging
+        run: pnpm run pack:release --skip-build

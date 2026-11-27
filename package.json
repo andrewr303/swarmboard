@@ -27,6 +27,12 @@
   "engines": {
     "node": ">=22.18"
   },
+  "files": [
+    "dist",
+    "docs/skill",
+    "README.md",
+    "LICENSE"
+  ],
   "bin": {
     "swarmboard": "./dist/bin/swarmboard.mjs",
     "swarmboard-mcp": "./dist/bin/swarmboard-mcp.mjs",
@@ -50,6 +56,8 @@
     "typecheck": "tsc --noEmit",
     "build:ui": "node scripts/build-ui.mjs",
     "build": "node -e \"import('node:fs').then((f) => f.rmSync('dist', { recursive: true, force: true }))\" && node scripts/build-ui.mjs && tsdown",
+    "pack:release": "node scripts/build-release.mjs",
+    "prepublishOnly": "pnpm typecheck && pnpm build",
     "test": "vitest run",
     "check": "pnpm typecheck && pnpm test && pnpm build"
   },

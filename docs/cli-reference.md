@@ -48,6 +48,45 @@ Global flags may appear anywhere in the argument list before `--`:
 
 ## Setup & Operations Commands
 
+### `swarmboard setup`
+
+Idempotently configure Swarmboard on your machine from any install layout (standalone release archive, global npm install, or source checkout).
+
+```bash
+swarmboard setup [--dry-run] [--skip-init] [--no-link-bin] [--no-shell] [--no-skills] [--no-mcp] [--no-instructions] [--home <dir>] [--bin-dir <dir>] [--mcp-bin <path>]
+```
+
+| Flag | Description |
+|---|---|
+| `--dry-run` | Preview planned changes without modifying any files or configs |
+| `--skip-init` | Skip initializing and seeding `~/.local/state/swarmboard/global/board.db` |
+| `--no-link-bin` | Do not symlink `swarmboard`, `swarmboard-mcp`, and `swarmboard-daemon` into `~/.local/bin` |
+| `--no-shell` | Do not add the `SWARMBOARD_DB` block to `~/.zshenv` |
+| `--no-skills` | Skip installing `~/.agents/skills/swarmboard/` and harness skill symlinks |
+| `--no-mcp` | Skip registering `swarmboard-mcp` in detected harness MCP config files |
+| `--no-instructions` | Skip appending the universal Swarmboard coordination block to agent instruction files |
+| `--home <dir>` | Override target home directory (useful for isolated or test rollouts) |
+| `--bin-dir <dir>` | Override binary symlink directory (default `~/.local/bin`) |
+| `--mcp-bin <path>` | Override the `swarmboard-mcp` executable path written into harness MCP configs |
+
+Every edited harness config is backed up once to `<file>.bak.swarmboard` and validated before and after atomic writes.
+
+### `swarmboard uninstall`
+
+Cleanly stop the background daemon (best-effort) and remove Swarmboard symlinks, MCP server entries, canonical/symlinked skills, the standalone app directory (`~/.local/share/swarmboard/app`), and marked instruction/shell blocks.
+
+```bash
+swarmboard uninstall [--dry-run] [--purge-data] [--home <dir>] [--bin-dir <dir>] [--app-dir <dir>]
+```
+
+| Flag | Description |
+|---|---|
+| `--dry-run` | Preview what would be removed without mutating files |
+| `--purge-data` | Also delete `~/.local/state/swarmboard`, `~/.config/swarmboard`, and `~/.swarmboard` (preserved by default) |
+| `--home <dir>` | Override target home directory |
+| `--bin-dir <dir>` | Override binary symlink directory |
+| `--app-dir <dir>` | Override standalone app directory to remove (refuses to delete directories containing `.git`) |
+
 ### `swarmboard init`
 
 Create or open the target board database, manifest, and sidecars.

@@ -123,3 +123,22 @@ export {
 } from './auth/authenticator.ts'
 export * from './daemon/index.ts'
 export * from '../server/index.ts'
+export {
+  buildUniversalInstructionBlock,
+  formatSetupReport,
+  formatUninstallReport,
+  resolvePackageRoot,
+  runSetup,
+  runUninstall,
+  type SetupBinEntry,
+  type SetupInstructionEntry,
+  type SetupLegacyEntry,
+  type SetupMcpEntry,
+  type SetupOptions,
+  type SetupReport,
+  type SetupSkillCanonicalEntry,
+  type SetupSkillSymlinkEntry,
+  type UninstallEntry,
+  type UninstallOptions,
+  type UninstallReport,
+} from './setup.ts'

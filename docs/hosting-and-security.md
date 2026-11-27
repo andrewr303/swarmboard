@@ -28,6 +28,16 @@ The following figures come directly from Swarmboard's build output (`src/ui/bund
 
 ---
 
+## Release Distribution & Integrity Verification
+
+Swarmboard builds two clean, verifiable release archives via `pnpm run pack:release` (and automated GitHub Releases on `v*` tags):
+
+- **Standalone tarball (`swarmboard-v<version>.tar.gz`)**: Contains compiled `dist/`, canonical `docs/skill/`, a clean runtime `package.json`, `README.md`, `LICENSE`, and dereferenced runtime dependencies (`jose`, `zod`—both have zero transitive dependencies). Requires only Node.js `>= 22.18` with no `git`, `pnpm`, or `npm install` step.
+- **npm package tarball (`swarmboard-<version>.tgz`)**: Packed strictly from the `package.json` `"files"` whitelist (`dist`, `docs/skill`, `README.md`, `LICENSE`), excluding `src/`, `tests/`, `scripts/`, and workflow files.
+- **Checksums (`SHA256SUMS.txt`)**: Published alongside every GitHub Release. `install.sh` verifies the downloaded archive's SHA-256 digest before extraction and performs an atomic swap into `~/.local/share/swarmboard/app`.
+
+---
+
 ## Local Trust Model
 
 Swarmboard reports its trust boundary explicitly in `swarmboard doctor`:

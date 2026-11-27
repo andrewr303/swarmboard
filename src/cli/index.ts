@@ -5,7 +5,18 @@ import type { Env, ResolveFlags } from '../client/resolve.ts'
 import { CLIENT_VERSION } from '../client/version.ts'
 import { parseGlobalArgs } from './args.ts'
 import type { CliBridgeContext, CliHostBridge, CliIo } from './bridge.ts'
-import { cmdBackup, cmdDaemon, cmdDoctor, cmdInit, cmdOpen, cmdServe, cmdTick, cmdToken } from './commands/ops.ts'
+import {
+  cmdBackup,
+  cmdDaemon,
+  cmdDoctor,
+  cmdInit,
+  cmdOpen,
+  cmdServe,
+  cmdSetup,
+  cmdTick,
+  cmdToken,
+  cmdUninstall,
+} from './commands/ops.ts'
 import { cmdTail, cmdWait } from './commands/realtime.ts'
 import {
   cmdAck,
@@ -91,7 +102,7 @@ function canonicalCommand(cmd: string): string {
   return CANONICAL_COMMAND_ALIASES[cmd] ?? cmd
 }
 
-const OPS_COMMANDS = new Set(['init', 'doctor', 'backup', 'tick', 'serve', 'daemon', 'open', 'token'])
+const OPS_COMMANDS = new Set(['setup', 'uninstall', 'init', 'doctor', 'backup', 'tick', 'serve', 'daemon', 'open', 'token'])
 
 /**
  * Executes one `swarmboard` CLI invocation and returns its POSIX exit code:
@@ -171,6 +182,10 @@ export async function runCli(
     if (OPS_COMMANDS.has(cmd)) {
       const opsEnv = { bridge, bridgeCtx, fmt, io }
       switch (cmd) {
+        case 'setup':
+          return await cmdSetup(opsEnv, rest)
+        case 'uninstall':
+          return await cmdUninstall(opsEnv, rest)
         case 'init':
           return await cmdInit(opsEnv, rest)
         case 'doctor':
