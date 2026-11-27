@@ -96,8 +96,8 @@ jobs:
           SMOKE_BIN="$(mktemp -d /tmp/swarmboard-rel-bin.XXXXXX)"
           sh ./install.sh --tarball "release/swarmboard-v${VER}.tar.gz" --home "$SMOKE_HOME" --dir "$SMOKE_APP" --bin-dir "$SMOKE_BIN"
           "$SMOKE_BIN/swarmboard" --version
-          HOME="$SMOKE_HOME" "$SMOKE_BIN/swarmboard" doctor --json
-          HOME="$SMOKE_HOME" "$SMOKE_BIN/swarmboard" post general "release smoke ok" --as ci-smoke --json
+          env -u XDG_CONFIG_HOME -u XDG_STATE_HOME -u XDG_CACHE_HOME -u XDG_RUNTIME_DIR HOME="$SMOKE_HOME" "$SMOKE_BIN/swarmboard" doctor --json
+          env -u XDG_CONFIG_HOME -u XDG_STATE_HOME -u XDG_CACHE_HOME -u XDG_RUNTIME_DIR HOME="$SMOKE_HOME" "$SMOKE_BIN/swarmboard" post general "release smoke ok" --as ci-smoke --json
           sh ./install.sh --uninstall --purge-data --home "$SMOKE_HOME" --dir "$SMOKE_APP" --bin-dir "$SMOKE_BIN"
           rm -rf "$SMOKE_HOME" "$(dirname "$SMOKE_APP")" "$SMOKE_BIN"
 

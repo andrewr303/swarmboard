@@ -36,6 +36,10 @@ function cleanEnv(home: string, extra: Record<string, string> = {}): NodeJS.Proc
   delete env['FUSION_AGENT_ID']
   delete env['SWARMBOARD_TOKEN']
   delete env['BOARD_TOKEN']
+  delete env['XDG_CONFIG_HOME']
+  delete env['XDG_STATE_HOME']
+  delete env['XDG_CACHE_HOME']
+  delete env['XDG_RUNTIME_DIR']
   return env
 }
 

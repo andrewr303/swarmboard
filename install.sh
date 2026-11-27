@@ -21,6 +21,7 @@ set -eu
 REPO="${SWARMBOARD_REPO:-andrewr303/swarmboard}"
 VERSION="${SWARMBOARD_VERSION:-latest}"
 HOME_DIR="${HOME:-}"
+HOME_OVERRIDDEN=0
 INSTALL_DIR="${SWARMBOARD_INSTALL_DIR:-}"
 BIN_DIR="${SWARMBOARD_BIN_DIR:-}"
 TARBALL_PATH=""
@@ -92,10 +93,12 @@ while [ "$#" -gt 0 ]; do
     --home)
       [ "$#" -ge 2 ] || die "--home requires a path"
       HOME_DIR="$2"
+      HOME_OVERRIDDEN=1
       shift 2
       ;;
     --home=*)
       HOME_DIR="${1#--home=}"
+      HOME_OVERRIDDEN=1
       shift
       ;;
     --tarball)
@@ -134,6 +137,9 @@ while [ "$#" -gt 0 ]; do
 done
 
 [ -n "$HOME_DIR" ] || die "HOME is not set; pass --home <dir>"
+if [ "$HOME_OVERRIDDEN" -eq 1 ]; then
+  unset XDG_CONFIG_HOME XDG_STATE_HOME XDG_CACHE_HOME XDG_RUNTIME_DIR
+fi
 [ -n "$INSTALL_DIR" ] || INSTALL_DIR="${HOME_DIR}/.local/share/swarmboard/app"
 [ -n "$BIN_DIR" ] || BIN_DIR="${HOME_DIR}/.local/bin"
 

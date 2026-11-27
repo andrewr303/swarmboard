@@ -343,10 +343,19 @@ interface InternalSetupCtx {
   readonly configureMcp: boolean
   readonly configureInstructions: boolean
   readonly home: string
+  readonly homeOverridden: boolean
   readonly packageRoot: string
   readonly binDir: string
   readonly mcpBinOverride?: string
   readonly legacySlug?: string
+}
+
+function resolveSwarmConfigDir(home: string, homeOverridden: boolean): string {
+  if (!homeOverridden && process.platform !== 'win32') {
+    const xdg = process.env['XDG_CONFIG_HOME']?.trim()
+    if (xdg && path.isAbsolute(xdg)) return path.join(xdg, 'swarmboard')
+  }
+  return path.join(home, '.config', 'swarmboard')
 }
 
 function stopLegacyDaemonBestEffort(ctx: InternalSetupCtx, legacyCleanup: SetupLegacyEntry[]): void {
@@ -423,7 +432,7 @@ function installBins(ctx: InternalSetupCtx, report: SetupReport): void {
 }
 
 function installGlobalConfig(ctx: InternalSetupCtx, report: SetupReport): string {
-  const configDir = path.join(ctx.home, '.config', 'swarmboard')
+  const configDir = resolveSwarmConfigDir(ctx.home, ctx.homeOverridden)
   const configPath = path.join(configDir, 'config.json')
   const stateDir = path.join(ctx.home, '.local', 'state', 'swarmboard', 'global')
   const globalDbPath = path.join(stateDir, 'board.db')
@@ -552,6 +561,12 @@ function initAndVerifyGlobalBoard(ctx: InternalSetupCtx, globalDbPath: string, r
   delete childEnv['FUSION_AGENT_ID']
   delete childEnv['SWARMBOARD_TOKEN']
   delete childEnv['BOARD_TOKEN']
+  if (ctx.homeOverridden) {
+    delete childEnv['XDG_CONFIG_HOME']
+    delete childEnv['XDG_STATE_HOME']
+    delete childEnv['XDG_CACHE_HOME']
+    delete childEnv['XDG_RUNTIME_DIR']
+  }
   childEnv['HOME'] = ctx.home
   childEnv['SWARMBOARD_DB'] = globalDbPath
 
@@ -995,7 +1010,9 @@ function installInstructionFiles(ctx: InternalSetupCtx, report: SetupReport): vo
  * canonical skill + harness symlinks, MCP configs, and global agent instructions.
  */
 export function runSetup(options: SetupOptions = {}): SetupReport {
-  const home = path.resolve(options.home ?? (process.env['HOME']?.trim() || os.homedir()))
+  const defaultHome = path.resolve(process.env['HOME']?.trim() || os.homedir())
+  const home = path.resolve(options.home ?? defaultHome)
+  const homeOverridden = options.home !== undefined && home !== defaultHome
   const packageRoot = options.packageRoot ? path.resolve(options.packageRoot) : resolvePackageRoot()
   const binDir = path.resolve(options.binDir ?? path.join(home, '.local', 'bin'))
   const ctx: InternalSetupCtx = {
@@ -1007,6 +1024,7 @@ export function runSetup(options: SetupOptions = {}): SetupReport {
     configureMcp: options.configureMcp !== false,
     configureInstructions: options.configureInstructions !== false,
     home,
+    homeOverridden,
     packageRoot,
     binDir,
     ...(options.mcpBin ? { mcpBinOverride: options.mcpBin } : {}),
@@ -1049,11 +1067,13 @@ export function runSetup(options: SetupOptions = {}): SetupReport {
 export function runUninstall(options: UninstallOptions = {}): UninstallReport {
   const dryRun = options.dryRun === true
   const purgeData = options.purgeData === true
-  const home = path.resolve(options.home ?? (process.env['HOME']?.trim() || os.homedir()))
+  const defaultHome = path.resolve(process.env['HOME']?.trim() || os.homedir())
+  const home = path.resolve(options.home ?? defaultHome)
+  const homeOverridden = options.home !== undefined && home !== defaultHome
   const binDir = path.resolve(options.binDir ?? path.join(home, '.local', 'bin'))
   const appDir = path.resolve(options.appDir ?? path.join(home, '.local', 'share', 'swarmboard', 'app'))
   const stateDir = path.join(home, '.local', 'state', 'swarmboard')
-  const configDir = path.join(home, '.config', 'swarmboard')
+  const configDir = resolveSwarmConfigDir(home, homeOverridden)
   const runDir = path.join(home, '.swarmboard')
   const globalDbPath = path.join(stateDir, 'global', 'board.db')
 
