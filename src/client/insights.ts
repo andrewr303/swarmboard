@@ -3,11 +3,12 @@ import { DatabaseSync } from 'node:sqlite'
 import { ChannelPath, LabelValue } from '../core/public.ts'
 import type { BoardClient } from './client.ts'
 import { clientError } from './errors.ts'
+import type { InsightView } from './insight-views.ts'
 import type { CallOptions } from './types.ts'
 
 export interface BoardInsightsInput {
   channel: string
-  view: 'progress' | 'activity' | 'unanswered'
+  view: InsightView
   run?: string
   limit?: number
 }
@@ -16,6 +17,17 @@ export interface BoardInsightsInput {
 // so an exactly-full report window can still be distinguished from truncation.
 const WINDOW = 499
 const QUERY = {
+  blockers: `WITH tasks AS (SELECT value AS task FROM json_each(?)),
+    dependents AS (
+      SELECT need.value AS id, count(*) AS total
+      FROM tasks, json_each(task, '$.needs') AS need
+      WHERE task->>'state' = 'waiting' GROUP BY need.value
+    )
+    SELECT task->>'id' AS id, task->>'text' AS text, task->>'kind' AS kind,
+      task->>'reason' AS reason, coalesce(total, 0) AS waitingDependents
+    FROM tasks LEFT JOIN dependents ON dependents.id = task->>'id'
+    WHERE task->>'state' = 'blocked'
+    ORDER BY waitingDependents DESC, cast(task->>'id' AS INTEGER) LIMIT ?`,
   progress: `SELECT phase, count(*) AS total,
     sum(state = 'ready') AS ready, sum(state = 'claimed') AS claimed,
     sum(state = 'waiting') AS waiting, sum(state = 'blocked') AS blocked,
@@ -45,13 +57,19 @@ async function readWindow(client: BoardClient, input: BoardInsightsInput, opts?:
   // legitimate label values literally after the authorized channel read.
   const label = run && !/[|\r\n\u2028\u2029]/u.test(run) ? { label: { run } } : {}
   const inRun = (value?: string) => run === undefined || value === run
-  if (view === 'progress') {
-    const page = await client.tasks.list({ channel, state: 'all', limit: WINDOW + 1, ...label }, opts)
+  if (view === 'progress' || view === 'blockers') {
+    const page = await client.tasks.list({ channel, state: view === 'blockers' ? 'open' : 'all', limit: WINDOW + 1, ...label }, opts)
     const tasks = page.tasks.slice(0, WINDOW)
     const now = Date.now()
-    const records = tasks.flatMap(({ message }) => {
+    const records = tasks.flatMap<object>(({ message }) => {
       const task = message.task
       if (message.deleted || !task || !inRun(message.labels.run)) return []
+      if (view === 'blockers') {
+        if (task.state === 'waiting') return [{ state: task.state, needs: task.needs }]
+        if (task.state !== 'blocked') return []
+        return [{ id: message.id, state: task.state, text: message.text.slice(0, 240),
+          kind: task.blocked?.kind ?? null, reason: task.blocked?.reason ?? null }]
+      }
       const lapsed = task.state === 'claimed' && task.claim && Date.parse(task.claim.until) <= now
       return [{ phase: message.labels.phase?.trim() || 'Unassigned phase', state: lapsed ? 'ready' : task.state }]
     })

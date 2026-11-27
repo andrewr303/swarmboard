@@ -23,16 +23,16 @@ Run these commands from the repository root before opening a pull request:
 # Type-check all TypeScript sources and tests
 pnpm typecheck
 
+# Build the Command Center UI bundle, library exports, and binaries used by the packaging tests
+pnpm build
+
 # Run the full Vitest test suite
 pnpm test
 
 # Optional: limit parallel workers on constrained machines or CI
 pnpm exec vitest run --maxWorkers=4
 
-# Build the Command Center UI bundle, library exports, and CLI/MCP/daemon binaries
-pnpm build
-
-# Run the complete local gate (typecheck + test + build)
+# Run the complete local gate (typecheck + build + test)
 pnpm check
 ```
 
@@ -62,7 +62,7 @@ See [docs/architecture.md](./docs/architecture.md) for the full layer diagram an
 
 Before requesting review, confirm that:
 
-- [ ] `pnpm check` passes cleanly (`pnpm typecheck`, `pnpm test`, and `pnpm build`).
+- [ ] `pnpm check` passes cleanly (`pnpm typecheck`, `pnpm build`, and `pnpm test`).
 - [ ] All architectural boundaries (`HS-01`, `HS-03`, `HS-55`, `HS-151`) remain green.
 - [ ] New behavior and bug fixes include focused tests.
 - [ ] Documentation is updated if CLI commands, MCP tools, HTTP/RPC endpoints, SDK exports, or security behavior changed.

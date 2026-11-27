@@ -604,7 +604,7 @@ describe('HOST-6 MCP Server — protocol, all 23 tools, caps, claim cache, auto-
         jsonrpc: '2.0',
         id: 50,
         method: 'tools/call',
-        params: { name: 'board_post', arguments: { re: task1.data.task.id, text: 'Milestone: all 23 tools green' } },
+        params: { name: 'board_post', arguments: { re: task1.data.task.id, text: 'Milestone: all 23 tools green', labels: { handoff: 'result' } } },
       })
 
       const listedTasks = await rpcCall<{ tasks: Array<{ message: { id: string }; latestReply?: { excerpt: string } }> }>(
@@ -623,6 +623,28 @@ describe('HOST-6 MCP Server — protocol, all 23 tools, caps, claim cache, auto-
       expect(completed.isError).toBe(false)
       expect(completed.data.task.task?.state).toBe('completed')
       expect(completed.data.task.task?.result).toBe('Verified task handoff')
+
+      const handoff = await rpcCall(h.server, 'board_read', { target: task1.data.task.thread, handoff: true, maxChars: 10 })
+      expect(handoff.isError).toBe(false)
+      expect(handoff.data).toMatchObject({
+        rootId: task1.data.task.id, task: { state: 'completed', result: 'Verified task handoff' },
+        items: [{ kind: 'result', excerpt: 'Milestone…' }],
+        coverage: { repliesScanned: 1, limitReached: false },
+      })
+      expect((await rpcCall(h.server, 'board_read', { target: 'general', handoff: true })).isError).toBe(true)
+      expect((await rpcCall(h.server, 'board_read', { target: task1.data.task.id, markdown: true })).isError).toBe(true)
+      const key = 'github_pat_' + 'x'.repeat(42)
+      await rpcCall(h.server, 'board_post', { re: task1.data.task.id, text: `[STATUS] ${key} rotated` })
+      const portable = await rpcCall<{ markdown: string }>(h.server, 'board_read', {
+        target: task1.data.task.id, handoff: true, markdown: true, maxChars: 18,
+      })
+      expect(portable.isError).toBe(false)
+      expect(portable.data).toMatchObject({
+        channel: 'repos/app/work', rootId: task1.data.task.id, coverage: { repliesScanned: 2 },
+      })
+      expect(portable.data.markdown).toContain('[redacted-token]')
+      expect(portable.data.markdown).not.toContain('github_pat_')
+      expect(portable.data).not.toHaveProperty('items')
 
       const progress = await rpcCall<{ rows: Array<{ completed: number }> }>(h.server, 'board_insights', {
         view: 'progress', channel: 'repos/app/work',
@@ -686,6 +708,10 @@ describe('HOST-6 MCP Server — protocol, all 23 tools, caps, claim cache, auto-
         { action: 'block', id: idA, reason: 'Waiting on review', kind: 'review' },
       )
       expect(blocked.data.task.task?.state).toBe('blocked')
+      const blockers = await rpcCall(h.server, 'board_insights', {
+        channel: 'repos/app/work', view: 'blockers',
+      })
+      expect(blockers.data).toMatchObject({ rows: [{ id: idA, reason: 'Waiting on review', waitingDependents: 1 }] })
 
       const unblocked = await rpcCall<{ ok: true; task: { task?: { state: string } } }>(
         h.server,

@@ -70,7 +70,72 @@ function makeWorkspace() {
   return { dir, db, xdgConfig, exec }
 }
 
+describe('read --handoff', () => {
+  it('attributes labeled posts, reflects edits and deletions, and keeps the selected reply window', async () => {
+    const ws = makeWorkspace()
+    const run = async <T = unknown>(...args: string[]) => {
+      const res = await ws.exec([...args, '--as', 'codex', '--json'])
+      expect(res.code, res.stderr).toBe(0)
+      return res.json as T
+    }
+    const message = run<{ id: string; thread: string; author: { handle: string } }>
+    const root = await message('post', 'general', 'Keep the existing format', '-l', 'handoff=decision')
+    const followup = await message('reply', root.id, 'Publish a sample')
+    await run('label', followup.id, 'handoff=todo')
+    await run('edit', followup.id, 'Publish two samples')
+    const result = await message('reply', root.id, 'Both samples verified', '-l', 'handoff=result')
+    const ordinary = await message('reply', root.id, 'The samples are in the thread')
+    const removed = await message('reply', root.id, 'Withdrawn result', '-l', 'handoff=result')
+    await run('delete', removed.id)
+
+    const report = await run('read', ordinary.id, '--handoff')
+    expect(report).toMatchObject({
+      rootId: root.id, channel: 'general', task: null,
+      items: [
+        { kind: 'decision', id: root.id, excerpt: 'Keep the existing format' },
+        { kind: 'todo', id: followup.id, excerpt: 'Publish two samples' },
+        { kind: 'result', id: result.id, handle: result.author.handle },
+      ],
+      latestReply: { id: ordinary.id },
+      coverage: { limit: 50, repliesScanned: 4, limitReached: false, lastReplyId: removed.id },
+    })
+    expect(await run('read', root.thread, '--handoff', '--after', followup.id, '--limit', '1')).toMatchObject({
+      items: [{ id: root.id }, { id: result.id }], latestReply: { id: result.id },
+      coverage: { after: followup.id, repliesScanned: 1, limitReached: true, lastReplyId: result.id },
+    })
+    const text = await ws.exec(['read', root.id, '--handoff', '--as', 'codex'])
+    expect(text.stdout).toContain(`[todo] #${followup.id} @${followup.author.handle} · Publish two samples`)
+    expect(text.stdout).toContain(`Latest reply: #${ordinary.id}`)
+    expect(text.stdout).not.toContain('Withdrawn result')
+  })
+
+  it('rejects channel targets and protects private messages', async () => {
+    const ws = makeWorkspace()
+    const dm = await ws.exec(['dm', 'codex', 'Private handoff', '--as', 'agy', '--json'])
+    expect(dm.code, dm.stderr).toBe(0)
+    const id = (dm.json as { message: { id: string } }).message.id
+    const denied = await ws.exec(['read', id, '--handoff', '--as', 'claude', '--json'])
+    expect(denied.code).not.toBe(0)
+    expect(denied.stdout + denied.stderr).not.toContain('Private handoff')
+    const invalid = await ws.exec(['read', 'general', '--handoff', '--as', 'codex'])
+    expect(invalid.code).not.toBe(0)
+  })
+})
+
 describe('insights', () => {
+  it('reads blockers from the selected channel', async () => {
+    const ws = makeWorkspace()
+    const opts = ['--as', 'codex', '--json']
+    const created = await ws.exec(['tasks', 'create', 'general', 'Publish build', ...opts])
+    expect(created.code, created.stderr).toBe(0)
+    const { task } = created.json as { task: { id: string } }
+    const hold = await ws.exec(['tasks', 'block', task.id, 'Awaiting sign-off', ...opts])
+    expect(hold.code, hold.stderr).toBe(0)
+    const report = await ws.exec(['insights', 'blockers', 'general', ...opts])
+    expect(report.code, report.stderr).toBe(0)
+    expect(report.json).toMatchObject({ rows: [{ id: task.id, kind: null, reason: 'Awaiting sign-off', waitingDependents: 0 }] })
+  })
+
   it('finds an unanswered thread on the requested channel', async () => {
     const ws = makeWorkspace()
     const opts = ['--as', 'codex', '--json']

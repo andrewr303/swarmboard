@@ -30,6 +30,7 @@
   "files": [
     "dist",
     "docs/skill",
+    "docs/integrations.md",
     "README.md",
     "LICENSE"
   ],
@@ -59,7 +60,7 @@
     "pack:release": "node scripts/build-release.mjs",
     "prepublishOnly": "pnpm typecheck && pnpm build",
     "test": "vitest run",
-    "check": "pnpm typecheck && pnpm test && pnpm build"
+    "check": "pnpm typecheck && pnpm build && pnpm test"
   },
   "dependencies": {
     "jose": "^6.2.12",

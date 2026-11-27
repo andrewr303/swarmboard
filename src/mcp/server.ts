@@ -3,6 +3,7 @@
 // Never writes diagnostics to stdout (all diagnostics go through bridge.log -> stderr).
 import type { BoardClient } from '../client/client.ts'
 import { clientError, errorPayload, isBoardError } from '../client/errors.ts'
+import { collectEnvSecrets } from '../client/redact.ts'
 import { CLIENT_VERSION } from '../client/version.ts'
 import type { FormattedErrorPayload, McpConnectRequest, McpHostBridge } from './bridge.ts'
 import { ClaimCache, deriveBoardKey } from './claim-cache.ts'
@@ -418,6 +419,7 @@ export class McpServer {
               presence: this.#presence,
               signal: ctrl.signal,
               waitCapS: this.#waitCapS,
+              secrets: collectEnvSecrets(this.#bridge.env ?? process.env),
             })
             return jsonRpcResult(id, {
               content: [

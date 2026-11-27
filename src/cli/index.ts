@@ -5,6 +5,7 @@ import type { Env, ResolveFlags } from '../client/resolve.ts'
 import { CLIENT_VERSION } from '../client/version.ts'
 import { parseGlobalArgs } from './args.ts'
 import type { CliBridgeContext, CliHostBridge, CliIo } from './bridge.ts'
+import { cmdHook } from './commands/hook.ts'
 import {
   cmdBackup,
   cmdDaemon,
@@ -45,6 +46,7 @@ import {
   cmdWho,
   type CommandEnv,
 } from './commands/social.ts'
+import { cmdSwarm } from './commands/swarm.ts'
 import { cmdTasks } from './commands/tasks.ts'
 import { COMMAND_HELP, MAIN_HELP } from './help.ts'
 import {
@@ -97,6 +99,8 @@ const CANONICAL_COMMAND_ALIASES: Readonly<Record<string, string>> = {
   notif: 'mentions',
   notifications: 'mentions',
   tokens: 'token',
+  hooks: 'hook',
+  swarms: 'swarm',
 }
 
 function canonicalCommand(cmd: string): string {
@@ -204,6 +208,14 @@ export async function runCli(
         case 'token':
           return await cmdToken(opsEnv, rest)
       }
+    }
+
+    if (cmd === 'hook') {
+      return await cmdHook({ bridge, bridgeCtx, fmt, io, env }, rest)
+    }
+
+    if (cmd === 'swarm') {
+      return await cmdSwarm({ bridge, bridgeCtx, fmt, io }, rest)
     }
 
     // Validate command name before opening a board connection

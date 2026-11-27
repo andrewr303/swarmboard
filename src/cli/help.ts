@@ -1,5 +1,8 @@
 // Concise top-level and per-command help text for `swarmboard`.
 // Note: never mention scoped package names here (always use bare `swarmboard`).
+import { HOOK_SNIPPET_HARNESSES } from '../client/hooks.ts'
+import { insightViews } from '../client/insight-views.ts'
+import { SWARM_BRIEF_FORMATS, SWARM_HARNESSES } from '../client/swarm.ts'
 
 export const MAIN_HELP = `swarmboard — unified local & remote coordination board for humans and coding agents
 
@@ -32,13 +35,14 @@ Setup & Ops:
   token <issue|list|revoke>                         Manage hashed bearer auth tokens
 
 Messaging & Social:
-  insights <view> <channel> [--run ID] [--limit N]   Report progress, activity or unanswered threads
+  insights <view> <channel> [--run ID] [--limit N]   Report progress, blockers, activity or unanswered threads
   inbox [--limit N] [--urgent]                      1-call digest: unread notifications, tasks, DMs, channels
   mentions [--all] [--urgent] [--reason <r>]        List unread or all notifications
   ack <notif-id> | --all [--channel <ch>]           Acknowledge notification(s) and mark channels read
   post <channel> <text> [-l k=v] [--quote <id>]     Start a new thread (supports --attach, --file, --id)
   reply <id> <text> [--after <id>] [--quote <id>]   Reply in a thread (accepts 12, #12, msg_12, thr_...)
   read [channel|id] [--limit N] [--flat]            Read a channel's threads/messages or a single thread
+  read <id> --handoff [--markdown] [--after ID]     Show handoff decisions, status, todos, results & task state
   threads [channel] [--order forum|chronological]   List threads (Announcements -> Sticky -> Active)
   edit <id> <text> [--rev N]                        Edit a message
   delete <id> [--rev N]                             Delete a message (tombstone)
@@ -56,8 +60,10 @@ Messaging & Social:
   feedback <summary> [--kind ...] [--severity ...]  Submit beta feedback (board-feedback@1) to meta/feedback
   search <query> [--channel <ch>] [--scope ...]     Full-text search (FTS5)
 
-Realtime & Tasks:
+Realtime, Hooks & Swarms:
   wait [channel|id] [--inbox] [--hook-rewake]       Bounded wait (Stop-hook exit 2 on wake, 0 on timeout)
+  hook <brief|rewake|snippet> [options]             Safe turn-boundary briefs, Stop/TeammateIdle wakes & hook configs
+  swarm <init|brief|status> <run-id> [options]      Scaffold swarm channels/@group, worker briefs & run status
   tail [channel] [--mentions [who]] [--all]         Stream live board events until Ctrl-C
   tasks <list|get|create|claim|renew|release|complete|fail|block|unblock|reopen|assign|needs|cancel|batch>
 
@@ -84,7 +90,10 @@ Start a thread in <channel>. Pass "-" as text or "--file -" to read stdin.`,
   reply: `Usage: swarmboard reply <id> [text] [--after <id>] [--quote <id>] [-l k=v]... [--id <key>] [--attach <file>]... [--file <path>]
 Reply to a thread (accepts 12, #12, msg_12, thr_...).`,
   read: `Usage: swarmboard read [channel|id] [-n|--limit N] [--after <cur>] [--before <cur>] [--flat] [--by <who>] [--mentions [who]] [-l k=v] [--no-pinned]
-Read a thread by ID or list threads/messages in a channel.`,
+       swarmboard read <id> --handoff [--markdown] [--after <message-id>] [--limit N] [--json]
+Read a thread by ID or list threads/messages in a channel. A handoff shows the root, recorded task state,
+latest live reply and posts labeled handoff=decision|todo|status|result or lines prefixed with
+[DECISION], [TODO], [STATUS], or [RESULT] (default: 50 replies). With --markdown, renders redacted Markdown.`,
   threads: `Usage: swarmboard threads [channel] [--by <who>] [--mentions [who]] [-l k=v] [--text <words>] [-n|--limit N] [--order forum|chronological] [--no-pinned] [--include-meta]
 List threads ordered Announcements -> Sticky -> Active (default forum order).`,
   edit: `Usage: swarmboard edit <id> [text] [--rev N] [--file <path>]`,
@@ -92,7 +101,7 @@ List threads ordered Announcements -> Sticky -> Active (default forum order).`,
   react: `Usage: swarmboard react <id> <emoji> [--remove]`,
   label: `Usage: swarmboard label <id> [k=v]... [--set k=v]... [--unset k]... [--if k=v]... [--if-unset k]...`,
   flag: `Usage: swarmboard flag <id> <reason> [--feedback] [--resolve]`,
-  insights: `Usage: swarmboard insights <progress|activity|unanswered> <channel> [--run ID] [--limit N]`,
+  insights: `Usage: swarmboard insights <${insightViews.join('|')}> <channel> [--run ID] [--limit N]`,
   inbox: `Usage: swarmboard inbox [-n|--limit N] [--tasks-limit N] [--urgent] [--channel <ch>] [--no-ready]`,
   mentions: `Usage: swarmboard mentions [--all] [--urgent] [--reason <r>] [--channel <ch>] [--after <cur>] [-n|--limit N] [--count]`,
   ack: `Usage: swarmboard ack <notif-id> [--read-only]
@@ -116,6 +125,14 @@ List threads ordered Announcements -> Sticky -> Active (default forum order).`,
        swarmboard presence list [channel] [--all]`,
   wait: `Usage: swarmboard wait [channel|id] [--inbox] [--mentions [who]] [--re <id>] [-l k=v] [--after <cur>] [--timeout 20s] [--hook-rewake]
 With --hook-rewake: exits 2 with a compact wake summary when new items arrive, exits 0 on quiet timeout.`,
+  hook: `Usage: swarmboard hook brief [--seed] [--session <id>] [--channel <ch>] [--urgent] [--state-dir <dir>] [--include-subagents] [--no-stdin] [--strict]
+       swarmboard hook rewake [--timeout 0s] [--channel <ch>] [--ready-channel <ch>] [--urgent] [--session <id>] [--state-dir <dir>] [--allow-reentry] [--include-subagents] [--no-stdin] [--strict]
+       swarmboard hook snippet <${HOOK_SNIPPET_HARNESSES.join('|')}> [--as <profile>] [--channel <ch>] [--ready-channel <ch>] [--timeout 0s] [--async]
+Multi-harness lifecycle hook helpers (zero raw body leaks, automatic subagent/re-entry guards, superseded-waiter stand-down, and fail-open behavior).`,
+  swarm: `Usage: swarmboard swarm init <run-id> [--harness <h>] [-w|--workers N] [--prefix <p>] [--lead <p>] [--repo <slug>] [--topic <t>] [--blind] [--kickoff] [--skill-path <p>]
+       swarmboard swarm brief <run-id> [--harness <h>] [--worker <p> | -w|--workers N] [--prefix <p>] [--lead <p>] [--task <id>]... [--peers a,b] [--topic <t>] [--blind] [--role lead|worker|all] [--format ${SWARM_BRIEF_FORMATS.join('|')}]
+       swarmboard swarm status <run-id> [--repo <slug> | --channel <path>] [-n|--limit N]
+Supported --harness values: ${SWARM_HARNESSES.join(', ')}.`,
   tail: `Usage: swarmboard tail [channel] [--mentions [who]] [--by <who>] [--re <id>] [-l k=v] [--all] [--last N] [--after <cur>]`,
   tasks: `Usage: swarmboard tasks [list] [channel] [--state open|all|ready|claimed|blocked|waiting|completed|failed|canceled] [-l k=v] [--for <who>] [--owner <who>] [-n|--limit N]
        swarmboard tasks get <id>
